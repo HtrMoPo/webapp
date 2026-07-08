@@ -483,7 +483,7 @@ async function publish() {
             <input class="form-input" v-model="datasetRows[i]" placeholder="https://…" />
             <div class="form-help" v-if="datasetLabel(datasetRows[i])">→ {{ datasetLabel(datasetRows[i]) }}</div>
           </div>
-          <button class="btn btn--ghost" @click="removeDatasetRow(i)" v-if="datasetRows.length > 1">{{ t('form.remove') }}</button>
+          <button class="btn btn--ghost" @click="removeDatasetRow(i)" v-if="datasetRows.length > 1">{{ t('common.remove') }}</button>
         </div>
         <button class="add-row-btn" @click="addDatasetRow">+ {{ t('common.add') }}</button>
       </div>
@@ -499,7 +499,7 @@ async function publish() {
             <input class="form-input" v-model="baseModelRows[i]" placeholder="https://…" />
             <div class="form-help" v-if="baseModelLabel(baseModelRows[i])">→ {{ baseModelLabel(baseModelRows[i]) }}</div>
           </div>
-          <button class="btn btn--ghost" @click="removeBaseModelRow(i)" v-if="baseModelRows.length > 1">{{ t('form.remove') }}</button>
+          <button class="btn btn--ghost" @click="removeBaseModelRow(i)" v-if="baseModelRows.length > 1">{{ t('common.remove') }}</button>
         </div>
         <button class="add-row-btn" @click="addBaseModelRow">+ {{ t('common.add') }}</button>
       </div>
