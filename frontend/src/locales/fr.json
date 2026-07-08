@@ -10,7 +10,20 @@
     "title": "Documenter et publier des modèles <span class=\"accent\">Kraken</span>",
     "subtitle": "Décrivez votre modèle HTR/OCR avec le schéma de métadonnées HTRMoPo, publiez-le sur Zenodo avec un DOI citable, et suivez chaque version au même endroit.",
     "browse": "Parcourir le catalogue",
-    "uploadCta": "Déposer un modèle"
+    "uploadCta": "Déposer un modèle",
+    "hosting": {
+      "title": "Hébergement",
+      "text": "Cette application est hébergée et maintenue par Inria Paris."
+    },
+    "funding": {
+      "title": "Financement",
+      "text": "Ce projet est développé dans le cadre d'<a href=\"https://atrium-research.eu/\">ATRIUM</a>. ATRIUM est financé par l'Union européenne dans le cadre de la convention de subvention n° 101132163. Les points de vue et opinions exprimés n'engagent toutefois que leur(s) auteur(s) et ne reflètent pas nécessairement ceux de l'Union européenne. Ni l'Union européenne ni l'autorité subventionnaire ne sauraient en être tenues responsables."
+    },
+    "links": {
+      "title": "Liens",
+      "repo": "Code source sur GitHub",
+      "htrmopo": "Le schéma HTRMoPo"
+    }
   },
   "catalog": {
     "title": "Catalogue de modèles",

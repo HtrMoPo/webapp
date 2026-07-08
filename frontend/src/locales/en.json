@@ -10,7 +10,20 @@
     "title": "Document & publish <span class=\"accent\">Kraken</span> models",
     "subtitle": "Describe your HTR/OCR model using the HTRMoPo metadata scheme, publish it to Zenodo with a citable DOI, and keep every version tracked in one place.",
     "browse": "Browse the catalog",
-    "uploadCta": "Upload a model"
+    "uploadCta": "Upload a model",
+    "hosting": {
+      "title": "Hosting",
+      "text": "This application is hosted and maintained by Inria Paris."
+    },
+    "funding": {
+      "title": "Funding",
+      "text": "This project is developed in the context of <a href=\"https://atrium-research.eu/\">ATRIUM</a>. ATRIUM is funded by the European Union under Grant Agreement n. 101132163. Views and opinions expressed are however those of the author(s) only and do not necessarily reflect those of the European Union. Neither the European Union nor the granting authority can be held responsible for them."
+    },
+    "links": {
+      "title": "Links",
+      "repo": "Source code on GitHub",
+      "htrmopo": "The HTRMoPo scheme"
+    }
   },
   "catalog": {
     "title": "Model catalog",
