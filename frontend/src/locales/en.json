@@ -107,6 +107,7 @@
     "publishConfirm": "This will publish an immutable, citable record on {env}. Continue?",
     "discard": "Discard draft",
     "validationErrors": "Please fix the following before publishing:",
+    "noFilesError": "Attach at least one model file before publishing.",
     "publishSuccess": "Published! DOI: {doi}"
   },
   "auth": {

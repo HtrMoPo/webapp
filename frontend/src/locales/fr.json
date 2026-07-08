@@ -107,6 +107,7 @@
     "publishConfirm": "Ceci publiera un enregistrement immuable et citable sur {env}. Continuer ?",
     "discard": "Abandonner le brouillon",
     "validationErrors": "Merci de corriger les points suivants avant de publier :",
+    "noFilesError": "Joignez au moins un fichier de modèle avant de publier.",
     "publishSuccess": "Publié ! DOI : {doi}"
   },
   "auth": {

@@ -333,6 +333,10 @@ async function pollPublishProgress(id, stopFlag) {
 
 async function publish() {
   errors.value = []
+  if (!files.value.length) {
+    errors.value = [t('form.noFilesError')]
+    return
+  }
   publishing.value = true
   try {
     await saveDraft()
@@ -371,8 +375,12 @@ async function publish() {
 
   <div v-else class="form-page">
     <div class="form-section">
-      <div class="step-heading"><span class="step-badge">1</span>{{ t('form.steps.title') }}</div>
-      <p>{{ t('form.steps.one') }} → {{ t('form.steps.two') }} → {{ t('form.steps.three') }}</p>
+      <h2>{{ t('form.steps.title') }}</h2>
+      <div class="steps-list">
+        <div class="step-item"><span class="step-badge">1</span>{{ t('form.steps.one') }}</div>
+        <div class="step-item"><span class="step-badge">2</span>{{ t('form.steps.two') }}</div>
+        <div class="step-item"><span class="step-badge">3</span>{{ t('form.steps.three') }}</div>
+      </div>
     </div>
 
     <div class="form-section">
@@ -566,6 +574,17 @@ async function publish() {
 </template>
 
 <style scoped>
+.steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.step-item {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: var(--ink-2);
+}
 .form-progress {
   margin-top: 14px;
   display: flex;
