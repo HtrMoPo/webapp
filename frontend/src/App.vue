@@ -7,6 +7,9 @@ import { api } from './api/client'
 
 const { t, locale } = useI18n()
 const auth = useAuth()
+// Bound dynamically (not a static src/href) so Vite's asset-URL transform
+// doesn't try to resolve these public/ files as JS module imports.
+const baseUrl = import.meta.env.BASE_URL
 
 onMounted(refreshAuth)
 
@@ -44,6 +47,28 @@ async function logout() {
   <footer class="site-footer">
     <div class="site-footer__inner">
       <div class="site-footer__copy">HTRMoPo App — Kraken model catalog, built on the HTRMoPo scheme.</div>
+
+      <div class="footer-meta">
+        <span class="footer-meta__item">
+          <img :src="`${baseUrl}inria-logo.png`" alt="Inria" />
+          {{ t('home.hosting.text') }}
+        </span>
+        <span class="footer-meta__item">
+          <img src="https://atrium-research.eu/assets/content/en/pages/communications-kit/clay.png" alt="ATRIUM" />
+          <span v-html="t('home.funding.text')"></span>
+        </span>
+      </div>
+
+      <div class="footer-links">
+        <a href="https://github.com/HtrMoPo/webapp" target="_blank" rel="noopener" :title="t('home.links.repo')">
+          <svg class="icon"><use :href="`${baseUrl}icons.svg#github-icon`" /></svg>
+          {{ t('home.links.repo') }}
+        </a>
+        <a href="https://github.com/HtrMoPo/HTRMoPo" target="_blank" rel="noopener" :title="t('home.links.htrmopo')">
+          <svg class="icon"><use :href="`${baseUrl}icons.svg#github-icon`" /></svg>
+          {{ t('home.links.htrmopo') }}
+        </a>
+      </div>
     </div>
   </footer>
 </template>
@@ -57,5 +82,52 @@ async function logout() {
   font-size: 13px;
   font-weight: 600;
   padding: 8px 16px;
+}
+
+.footer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--ink-3);
+  line-height: 1.55;
+}
+.footer-meta__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 440px;
+}
+.footer-meta__item img {
+  height: 22px;
+  width: auto;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+.footer-meta__item :deep(a) {
+  color: var(--ink-3);
+  text-decoration: underline;
+}
+
+.footer-links {
+  display: flex;
+  gap: 16px;
+  margin-top: 10px;
+}
+.footer-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.footer-links a:hover {
+  color: var(--ink-2);
+}
+.footer-links .icon {
+  width: 16px;
+  height: 16px;
+  opacity: 0.8;
 }
 </style>
