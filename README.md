@@ -150,7 +150,7 @@ make set-admin ID=1 ADMIN=false  # revoke
 <table border="0">
   <tr>
     <td rowspan="2"><img src="https://atrium-research.eu/assets/content/en/pages/communications-kit/clay.png" alt="ATRIUM" height="80"></td>
-    <td>This project is developed in the context of [ATRIUM](https://atrium-research.eu/).</td>
+    <td>This project is developed in the context of <a href="https://atrium-research.eu/">ATRIUM</a>.</td>
   </tr>
   <tr>
     <td> ATRIUM is funded by the European Union under Grant Agreement n. 101132163. Views and opinions expressed are however those of the author(s) only and do not necessarily reflect those of the European Union. Neither the European Union nor the granting authority can be held responsible for them.</td>
