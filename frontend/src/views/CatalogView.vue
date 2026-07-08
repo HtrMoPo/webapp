@@ -1,0 +1,141 @@
+<script setup>
+import { computed, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { api } from '../api/client'
+import { useAuth } from '../composables/useAuth'
+
+const { t } = useI18n()
+const auth = useAuth()
+
+const models = ref([])
+const loading = ref(true)
+const refreshing = ref(false)
+const search = ref('')
+const selected = ref({ language: new Set(), script: new Set(), model_type: new Set(), license: new Set() })
+
+async function load() {
+  models.value = await api.listModels()
+}
+
+onMounted(async () => {
+  await load()
+  loading.value = false
+})
+
+async function refreshFromZenodo() {
+  refreshing.value = true
+  try {
+    await api.triggerHarvest()
+    await load()
+  } catch {
+    // best-effort refresh; the nightly/post-publish harvest will catch up regardless
+  } finally {
+    refreshing.value = false
+  }
+}
+
+function facetValues(field) {
+  const counts = new Map()
+  for (const m of models.value) {
+    const values = field === 'license' ? [m.license] : m[field]
+    for (const v of values || []) {
+      if (!v) continue
+      counts.set(v, (counts.get(v) || 0) + 1)
+    }
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])
+}
+
+const languageFacet = computed(() => facetValues('language'))
+const scriptFacet = computed(() => facetValues('script'))
+const modelTypeFacet = computed(() => facetValues('model_type'))
+const licenseFacet = computed(() => facetValues('license'))
+
+function toggle(field, value) {
+  const set = selected.value[field]
+  if (set.has(value)) set.delete(value)
+  else set.add(value)
+}
+
+const filtered = computed(() => {
+  const q = search.value.trim().toLowerCase()
+  return models.value.filter((m) => {
+    if (q && !(`${m.title} ${m.summary}`.toLowerCase().includes(q))) return false
+    for (const field of ['language', 'script', 'model_type']) {
+      const set = selected.value[field]
+      if (set.size && !(m[field] || []).some((v) => set.has(v))) return false
+    }
+    if (selected.value.license.size && !selected.value.license.has(m.license)) return false
+    return true
+  })
+})
+</script>
+
+<template>
+  <div class="pagehead">
+    <h1>{{ t('catalog.title') }}</h1>
+    <p>{{ t('catalog.subtitle') }}</p>
+  </div>
+
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="sidebar__scroll">
+        <div class="search">
+          <input v-model="search" :placeholder="t('catalog.search')" />
+        </div>
+
+        <div class="facet" v-for="[field, label, values] in [
+          ['language', t('catalog.facets.language'), languageFacet],
+          ['script', t('catalog.facets.script'), scriptFacet],
+          ['model_type', t('catalog.facets.modelType'), modelTypeFacet],
+          ['license', t('catalog.facets.license'), licenseFacet],
+        ]" :key="field">
+          <div class="facet__head">{{ label }}</div>
+          <div class="facet__body">
+            <label class="opt" :class="{ 'is-on': selected[field].has(value) }" v-for="[value, count] in values" :key="value">
+              <span class="opt__box" @click="toggle(field, value)"></span>
+              <span class="opt__label" @click="toggle(field, value)">{{ value }}</span>
+              <span class="opt__n">{{ count }}</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="results">
+      <div class="toolbar">
+        <div class="toolbar__count">{{ filtered.length }}</div>
+        <div class="toolbar__spacer"></div>
+        <button
+          v-if="auth.isAdmin"
+          class="btn btn--ghost"
+          :disabled="refreshing"
+          @click="refreshFromZenodo"
+        >
+          {{ refreshing ? t('common.loading') : t('catalog.refresh') }}
+        </button>
+      </div>
+
+      <div v-if="loading" class="loading"><div class="spinner"></div>{{ t('common.loading') }}</div>
+      <div v-else-if="!filtered.length" class="empty"><p>{{ t('catalog.empty') }}</p></div>
+      <div v-else class="grid">
+        <div class="card" v-for="m in filtered" :key="m.slug">
+          <div class="card__band">
+            <div class="card__title">{{ m.title }}</div>
+          </div>
+          <div class="card__body">
+            <p class="card__desc">{{ m.summary }}</p>
+            <div class="chips">
+              <span class="chip chip--rose" v-for="l in m.language" :key="l"><span class="chip__k">lang</span><span class="chip__v">{{ l }}</span></span>
+              <span class="chip chip--rose" v-for="s in m.script" :key="s"><span class="chip__k">script</span><span class="chip__v">{{ s }}</span></span>
+              <span class="chip chip--green"><span class="chip__k">license</span><span class="chip__v">{{ m.license }}</span></span>
+            </div>
+            <div class="card__foot">
+              <router-link class="btn btn--ghost" :to="`/models/${m.slug}`">{{ t('catalog.viewRecord') }}</router-link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>

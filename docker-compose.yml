@@ -1,0 +1,24 @@
+services:
+  app:
+    build:
+      context: .
+      args:
+        VITE_BASE_PATH: ${URL_BASE_PATH:-/}
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    environment:
+      ZENODO_ENV: ${ZENODO_ENV:-sandbox}
+      ZENODO_SANDBOX_CLIENT_ID: ${ZENODO_SANDBOX_CLIENT_ID:-}
+      ZENODO_SANDBOX_CLIENT_SECRET: ${ZENODO_SANDBOX_CLIENT_SECRET:-}
+      ZENODO_PROD_CLIENT_ID: ${ZENODO_PROD_CLIENT_ID:-}
+      ZENODO_PROD_CLIENT_SECRET: ${ZENODO_PROD_CLIENT_SECRET:-}
+      ZENODO_REDIRECT_URI: ${ZENODO_REDIRECT_URI:-http://localhost:8000/api/auth/zenodo/callback}
+      SESSION_SECRET: ${SESSION_SECRET:-change-me-in-production}
+      URL_BASE_PATH: ${URL_BASE_PATH:-}
+      DATABASE_PATH: /data/htrmopo-app.db
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-5120}
+      ENABLE_NIGHTLY_HARVEST: ${ENABLE_NIGHTLY_HARVEST:-true}
+      NIGHTLY_HARVEST_HOUR_UTC: ${NIGHTLY_HARVEST_HOUR_UTC:-2}
+    volumes:
+      - ./data:/data
+    restart: unless-stopped

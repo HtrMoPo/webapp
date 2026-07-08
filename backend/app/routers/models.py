@@ -1,0 +1,396 @@
+import asyncio
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from app import card, harvest, progress, storage
+from app.config import get_settings
+from app.db import async_session, get_db
+from app.deps import get_current_user
+from app.models import ModelRecord, ModelVersion, User
+from app.slugs import slugify, unique_slug
+from app.zenodo_client import ZenodoClient, ZenodoError, build_zenodo_metadata
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/api/models", tags=["models"])
+
+
+class DraftIn(BaseModel):
+    metadata: dict
+    body_md: str
+    title: str = ""
+
+
+async def _trigger_background_harvest() -> None:
+    """Fire-and-forget catalog refresh, kicked off after a successful
+    publish -- a publish is already a moment we're talking to Zenodo, so it's
+    a natural, low-cost point to also pick up any new community entries."""
+    try:
+        async with async_session() as session:
+            summary = await harvest.sync_ocr_models(session)
+            logger.info("Post-publish catalog harvest: %s", summary)
+    except Exception:
+        logger.exception("Post-publish catalog harvest failed")
+
+
+def _is_public(version: ModelVersion) -> bool:
+    # The public catalog only ever shows versions actually published to
+    # production Zenodo, so sandbox test publishes never leak into it --
+    # regardless of which ZENODO_ENV this deployment currently runs under.
+    return version.status == "published" and version.zenodo_env == "production"
+
+
+def _record_summary(record: ModelRecord, versions: list[ModelVersion] | None = None) -> dict:
+    versions = versions if versions is not None else [v for v in record.versions if _is_public(v)]
+    latest = versions[-1] if versions else None
+    return {
+        "id": record.id,
+        "slug": record.slug,
+        "concept_doi": record.concept_doi,
+        "title": record.current_title,
+        "summary": record.current_summary,
+        "model_type": record.model_type,
+        "language": record.language,
+        "script": record.script,
+        "license": record.license,
+        "version_count": len(versions),
+        "latest_version": _version_summary(latest) if latest else None,
+    }
+
+
+def _version_summary(version: ModelVersion) -> dict:
+    return {
+        "id": version.id,
+        "doi": version.version_doi,
+        "status": version.status,
+        "zenodo_env": version.zenodo_env,
+        "files": version.files,
+        "published_at": version.published_at.isoformat() if version.published_at else None,
+        "card_yaml": version.card_yaml,
+        "card_body_md": version.card_body_md,
+    }
+
+
+@router.get("")
+async def list_models(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(ModelRecord).options(selectinload(ModelRecord.versions)))
+    records = result.scalars().all()
+    return [_record_summary(r) for r in records if any(_is_public(v) for v in r.versions)]
+
+
+@router.get("/mine")
+async def my_models(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(ModelRecord)
+        .where(ModelRecord.owner_user_id == user.id)
+        .options(selectinload(ModelRecord.versions))
+    )
+    records = result.scalars().all()
+    return [
+        {**_record_summary(r), "versions": [_version_summary(v) for v in r.versions]}
+        for r in records
+    ]
+
+
+@router.get("/{slug}")
+async def get_model(slug: str, request: Request, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(ModelRecord).where(ModelRecord.slug == slug).options(selectinload(ModelRecord.versions))
+    )
+    record = result.scalar_one_or_none()
+    if not record:
+        raise HTTPException(status_code=404, detail="not_found")
+
+    # The owner can always see their own published versions (including
+    # sandbox test publishes, e.g. right after publishing one); anyone else
+    # only sees versions actually published to production Zenodo.
+    session_user_id = request.session.get("user_id")
+    is_owner = session_user_id is not None and session_user_id == record.owner_user_id
+    visible_versions = [
+        v for v in record.versions if v.status == "published" and (is_owner or v.zenodo_env == "production")
+    ]
+    if not visible_versions:
+        raise HTTPException(status_code=404, detail="not_found")
+    return {
+        **_record_summary(record, visible_versions),
+        "versions": [_version_summary(v) for v in visible_versions],
+    }
+
+
+@router.post("/drafts")
+async def create_draft(
+    body: DraftIn, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+):
+    slug = await unique_slug(db, slugify(body.title or body.metadata.get("summary", "model")))
+    record = ModelRecord(owner_user_id=user.id, slug=slug)
+    db.add(record)
+    await db.flush()
+
+    version = ModelVersion(
+        model_record_id=record.id,
+        card_yaml=card.build_card_text(body.metadata, body.body_md),
+        card_body_md=body.body_md,
+        files=[],
+        status="draft",
+    )
+    db.add(version)
+    await db.commit()
+    await db.refresh(version)
+    return {"record_id": record.id, "version_id": version.id, "slug": slug}
+
+
+@router.post("/{record_id}/versions/draft")
+async def create_new_version_draft(
+    record_id: int,
+    body: DraftIn,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    record = await db.get(ModelRecord, record_id)
+    if not record or record.owner_user_id != user.id:
+        raise HTTPException(status_code=404, detail="not_found")
+
+    version = ModelVersion(
+        model_record_id=record.id,
+        card_yaml=card.build_card_text(body.metadata, body.body_md),
+        card_body_md=body.body_md,
+        files=[],
+        status="draft",
+    )
+    db.add(version)
+    await db.commit()
+    await db.refresh(version)
+    return {"record_id": record.id, "version_id": version.id}
+
+
+def _zenodo_error_messages(exc: ZenodoError) -> list[str]:
+    import json
+
+    try:
+        body = json.loads(exc.detail)
+    except (json.JSONDecodeError, TypeError):
+        return [f"Zenodo error {exc.status_code}: {exc.detail}"]
+
+    messages = []
+    for err in body.get("errors", []):
+        field = err.get("field", "")
+        for msg in err.get("messages", [err.get("message", "")]):
+            messages.append(f"{field}: {msg}" if field else msg)
+    if not messages and body.get("message"):
+        messages.append(body["message"])
+    return messages or [f"Zenodo error {exc.status_code}"]
+
+
+async def _get_owned_draft(version_id: int, user: User, db: AsyncSession) -> ModelVersion:
+    version = await db.get(ModelVersion, version_id)
+    if not version:
+        raise HTTPException(status_code=404, detail="not_found")
+    record = await db.get(ModelRecord, version.model_record_id)
+    if not record or record.owner_user_id != user.id:
+        raise HTTPException(status_code=404, detail="not_found")
+    if version.status != "draft":
+        raise HTTPException(status_code=409, detail="version_not_draft")
+    return version
+
+
+@router.put("/versions/{version_id}")
+async def update_draft(
+    version_id: int,
+    body: DraftIn,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    version = await _get_owned_draft(version_id, user, db)
+    version.card_yaml = card.build_card_text(body.metadata, body.body_md)
+    version.card_body_md = body.body_md
+    await db.commit()
+    return {"ok": True}
+
+
+@router.post("/versions/{version_id}/files")
+async def upload_file(
+    version_id: int,
+    file: UploadFile,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    version = await _get_owned_draft(version_id, user, db)
+
+    max_bytes = get_settings().max_upload_mb * 1024 * 1024
+    dest = storage.draft_dir(version_id) / file.filename
+    total = 0
+    try:
+        with open(dest, "wb") as out:
+            while chunk := await file.read(1024 * 1024):
+                total += len(chunk)
+                if total > max_bytes:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"file_too_large: exceeds the {get_settings().max_upload_mb}MB limit",
+                    )
+                out.write(chunk)
+    except HTTPException:
+        dest.unlink(missing_ok=True)
+        raise
+
+    files = [f for f in version.files if f["filename"] != file.filename]
+    files.append({"filename": file.filename, "size": total})
+    version.files = files
+    await db.commit()
+    return {"files": version.files}
+
+
+@router.delete("/versions/{version_id}/files/{filename}")
+async def delete_file(
+    version_id: int,
+    filename: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    version = await _get_owned_draft(version_id, user, db)
+    storage.delete_draft_file(version_id, filename)
+    version.files = [f for f in version.files if f["filename"] != filename]
+    await db.commit()
+    return {"files": version.files}
+
+
+@router.post("/versions/{version_id}/discard")
+async def discard_draft(
+    version_id: int, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+):
+    version = await _get_owned_draft(version_id, user, db)
+    storage.cleanup_draft(version_id)
+    if version.zenodo_deposition_id:
+        client = ZenodoClient(get_settings().zenodo_api_url, user.access_token)
+        try:
+            await client.discard(version.zenodo_deposition_id)
+        except Exception:
+            pass
+    await db.delete(version)
+    await db.commit()
+    return {"ok": True}
+
+
+class PublishIn(BaseModel):
+    private: bool = False
+
+
+@router.post("/versions/{version_id}/publish")
+async def publish_draft(
+    version_id: int,
+    body: PublishIn,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    version = await _get_owned_draft(version_id, user, db)
+    record = await db.get(ModelRecord, version.model_record_id)
+
+    parsed = card.parse_card(version.card_yaml)
+    metadata = parsed.metadata
+
+    client = ZenodoClient(get_settings().zenodo_api_url, user.access_token)
+
+    try:
+        if record.concept_doi:
+            progress.set_progress(version_id, "resolving_previous_version")
+            latest_result = await db.execute(
+                select(ModelVersion)
+                .where(ModelVersion.model_record_id == record.id, ModelVersion.status == "published")
+                .order_by(ModelVersion.published_at.desc())
+                .limit(1)
+            )
+            latest_version = latest_result.scalar_one_or_none()
+            if latest_version is None or not latest_version.version_doi:
+                raise HTTPException(status_code=409, detail="no_published_version_to_branch_from")
+            # Zenodo resolves /records/{id} from a specific version's DOI, not
+            # the shared concept DOI, to find the record to branch a new version from.
+            deposition = await client.new_version(latest_version.version_doi)
+        else:
+            progress.set_progress(version_id, "creating_deposition")
+            deposition = await client.create_deposition()
+
+        metadata["id"] = deposition.prereserved_doi
+        try:
+            card.validate_metadata(metadata)
+        except card.CardValidationError as exc:
+            raise HTTPException(status_code=422, detail={"errors": exc.errors}) from exc
+
+        card_text = card.build_card_text(metadata, parsed.body_md)
+        progress.set_progress(version_id, "uploading_file", "README.md")
+        await client.upload_file(deposition.bucket_url, "README.md", card_text.encode("utf-8"))
+
+        draft_files = storage.list_draft_files(version_id)
+        for i, path in enumerate(draft_files, start=1):
+            progress.set_progress(version_id, "uploading_file", f"{path.name} ({i}/{len(draft_files)})")
+            await client.upload_file(deposition.bucket_url, path.name, path.read_bytes())
+
+        progress.set_progress(version_id, "setting_metadata")
+        zenodo_metadata = build_zenodo_metadata(metadata, card.render_body_html(parsed.body_md), body.private)
+        await client.put_metadata(deposition.id, zenodo_metadata)
+
+        progress.set_progress(version_id, "publishing")
+        published = await client.publish(deposition.id)
+    except ZenodoError as exc:
+        progress.clear_progress(version_id)
+        raise HTTPException(status_code=502, detail={"errors": _zenodo_error_messages(exc)}) from exc
+    except HTTPException:
+        progress.clear_progress(version_id)
+        raise
+
+    version.card_yaml = card_text
+    version.zenodo_deposition_id = deposition.id
+    version.version_doi = published["doi"]
+    version.zenodo_env = get_settings().zenodo_env
+    version.status = "published"
+    version.files = [{"filename": p.name, "size": p.stat().st_size} for p in storage.list_draft_files(version_id)]
+
+    if not record.concept_doi:
+        record.concept_doi = published.get("conceptdoi") or published["doi"]
+    record.current_title = metadata["summary"]
+    record.current_summary = metadata["summary"]
+    record.model_type = metadata.get("model_type", [])
+    record.language = metadata.get("language", [])
+    record.script = metadata.get("script", [])
+    record.license = metadata.get("license", "")
+
+    from datetime import datetime, timezone
+
+    version.published_at = datetime.now(timezone.utc)
+
+    await db.commit()
+    storage.cleanup_draft(version_id)
+    progress.clear_progress(version_id)
+
+    asyncio.create_task(_trigger_background_harvest())
+
+    return {"doi": version.version_doi, "concept_doi": record.concept_doi, "slug": record.slug}
+
+
+@router.get("/versions/{version_id}/publish/progress")
+async def publish_progress(
+    version_id: int, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+):
+    version = await db.get(ModelVersion, version_id)
+    if not version:
+        raise HTTPException(status_code=404, detail="not_found")
+    record = await db.get(ModelRecord, version.model_record_id)
+    if not record or record.owner_user_id != user.id:
+        raise HTTPException(status_code=404, detail="not_found")
+    return progress.get_progress(version_id)
+
+
+@router.post("/harvest")
+async def trigger_harvest(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Manually refreshes the catalog from the public ocr_models Zenodo
+    community. Admin-only: this fans out to an external OAI-PMH harvest plus
+    a README.md fetch per record, which is more load than a base user should
+    be able to trigger on demand (the automatic post-publish/nightly refresh
+    already covers regular users' needs)."""
+    if not user.is_admin:
+        raise HTTPException(status_code=403, detail="admin_required")
+    return await harvest.sync_ocr_models(db)

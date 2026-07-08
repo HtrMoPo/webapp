@@ -1,0 +1,122 @@
+{
+  "nav": {
+    "catalog": "Catalog",
+    "myModels": "My models",
+    "upload": "Upload a model",
+    "login": "Connect with Zenodo",
+    "logout": "Log out"
+  },
+  "home": {
+    "title": "Document & publish <span class=\"accent\">Kraken</span> models",
+    "subtitle": "Describe your HTR/OCR model using the HTRMoPo metadata scheme, publish it to Zenodo with a citable DOI, and keep every version tracked in one place.",
+    "browse": "Browse the catalog",
+    "uploadCta": "Upload a model"
+  },
+  "catalog": {
+    "title": "Model catalog",
+    "subtitle": "Kraken models published through this app, with their full HTRMoPo metadata and version history.",
+    "search": "Search models…",
+    "empty": "No models match your filters yet.",
+    "resultCount": "{count} model | {count} models",
+    "facets": {
+      "language": "Language",
+      "script": "Script",
+      "modelType": "Model type",
+      "license": "License"
+    },
+    "viewRecord": "View full record",
+    "refresh": "Refresh from Zenodo"
+  },
+  "detail": {
+    "versions": "Versions",
+    "published": "Published",
+    "viewOnZenodo": "View on Zenodo",
+    "newVersion": "Publish a new version",
+    "metrics": "Metrics",
+    "datasets": "Training datasets",
+    "baseModel": "Base model(s)",
+    "citation": "Citation",
+    "authors": "Authors",
+    "files": "Files"
+  },
+  "form": {
+    "titleNew": "Document a new model",
+    "titleVersion": "Publish a new version of {title}",
+    "steps": {
+      "title": "Steps",
+      "one": "Fill in the model card",
+      "two": "Attach the model file(s)",
+      "three": "Publish to Zenodo"
+    },
+    "progress": {
+      "savingDraft": "Saving draft…",
+      "uploadingFiles": "Uploading files…",
+      "publishing": "Publishing to Zenodo…",
+      "creatingDeposition": "Creating a new record on Zenodo…",
+      "resolvingPreviousVersion": "Resolving the previous version…",
+      "uploadingFile": "Uploading {detail}…",
+      "settingMetadata": "Sending metadata to Zenodo…",
+      "publishingToZenodo": "Finalizing the publication on Zenodo…"
+    },
+    "section": {
+      "identity": "Model identity",
+      "authors": "Authors",
+      "classification": "Classification",
+      "training": "Training data & provenance",
+      "metrics": "Metrics",
+      "description": "Description",
+      "files": "Model files"
+    },
+    "summary": "One-line summary",
+    "summaryHelp": "A short, descriptive title for the model.",
+    "license": "License",
+    "softwareName": "Software",
+    "softwareHint": "Software hints (e.g. version)",
+    "language": "Languages",
+    "script": "Scripts",
+    "modelType": "Model type",
+    "keywords": "Keywords",
+    "datasets": "Dataset URLs",
+    "baseModel": "Base model(s)",
+    "baseModelSearch": "Search models in this catalog…",
+    "baseModelHelp": "Pick a fine-tuning base from models already in this catalog, or type an external URL below.",
+    "addCustomUrl": "Add external URL",
+    "citation": "Citation URL",
+    "citationHelp": "Link to the paper describing this model, if one exists (not the model card itself).",
+    "authorName": "Name",
+    "authorAffiliation": "Affiliation",
+    "authorOrcid": "ORCID",
+    "addAuthor": "Add author",
+    "removeAuthor": "Remove",
+    "metricName": "Metric",
+    "metricValue": "Value",
+    "metricsHelp": "Common metrics: CER (Character Error Rate), WER (Word Error Rate), mAP (mean Average Precision), Accuracy, F1 score. Use whatever is relevant to this model's task.",
+    "addMetric": "Add metric",
+    "removeMetric": "Remove",
+    "bodyMd": "Model card description",
+    "bodyMdHelp": "The long-form description shown on the model's page and as the Zenodo record description.",
+    "dropFiles": "Drag files here or click to browse",
+    "removeFile": "Remove",
+    "private": "Request community inclusion (uncheck for a private/test upload)",
+    "saveDraft": "Save draft",
+    "publish": "Publish to Zenodo",
+    "publishConfirm": "This will publish an immutable, citable record on {env}. Continue?",
+    "discard": "Discard draft",
+    "validationErrors": "Please fix the following before publishing:",
+    "publishSuccess": "Published! DOI: {doi}"
+  },
+  "auth": {
+    "sandboxBanner": "This deployment talks to the Zenodo Sandbox (sandbox.zenodo.org) — test data only, not durable.",
+    "loginPrompt": "Connect your Zenodo account to upload or version models.",
+    "notAuthenticated": "You need to connect with Zenodo first."
+  },
+  "common": {
+    "loading": "Loading…",
+    "cancel": "Cancel",
+    "save": "Save",
+    "add": "Add",
+    "remove": "Remove",
+    "language_en": "English",
+    "language_fr": "French"
+  }
+}

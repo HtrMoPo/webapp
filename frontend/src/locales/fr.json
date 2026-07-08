@@ -1,0 +1,122 @@
+{
+  "nav": {
+    "catalog": "Catalogue",
+    "myModels": "Mes modèles",
+    "upload": "Déposer un modèle",
+    "login": "Se connecter avec Zenodo",
+    "logout": "Se déconnecter"
+  },
+  "home": {
+    "title": "Documenter et publier des modèles <span class=\"accent\">Kraken</span>",
+    "subtitle": "Décrivez votre modèle HTR/OCR avec le schéma de métadonnées HTRMoPo, publiez-le sur Zenodo avec un DOI citable, et suivez chaque version au même endroit.",
+    "browse": "Parcourir le catalogue",
+    "uploadCta": "Déposer un modèle"
+  },
+  "catalog": {
+    "title": "Catalogue de modèles",
+    "subtitle": "Modèles Kraken publiés via cette application, avec leurs métadonnées HTRMoPo complètes et leur historique de versions.",
+    "search": "Rechercher un modèle…",
+    "empty": "Aucun modèle ne correspond à vos filtres.",
+    "resultCount": "{count} modèle | {count} modèles",
+    "facets": {
+      "language": "Langue",
+      "script": "Écriture",
+      "modelType": "Type de modèle",
+      "license": "Licence"
+    },
+    "viewRecord": "Voir la fiche complète",
+    "refresh": "Actualiser depuis Zenodo"
+  },
+  "detail": {
+    "versions": "Versions",
+    "published": "Publié",
+    "viewOnZenodo": "Voir sur Zenodo",
+    "newVersion": "Publier une nouvelle version",
+    "metrics": "Métriques",
+    "datasets": "Données d'entraînement",
+    "baseModel": "Modèle(s) de base",
+    "citation": "Citation",
+    "authors": "Auteurs",
+    "files": "Fichiers"
+  },
+  "form": {
+    "titleNew": "Documenter un nouveau modèle",
+    "titleVersion": "Publier une nouvelle version de {title}",
+    "steps": {
+      "title": "Étapes",
+      "one": "Remplir la fiche du modèle",
+      "two": "Joindre le(s) fichier(s) du modèle",
+      "three": "Publier sur Zenodo"
+    },
+    "progress": {
+      "savingDraft": "Enregistrement du brouillon…",
+      "uploadingFiles": "Envoi des fichiers…",
+      "publishing": "Publication sur Zenodo…",
+      "creatingDeposition": "Création d'un nouvel enregistrement sur Zenodo…",
+      "resolvingPreviousVersion": "Résolution de la version précédente…",
+      "uploadingFile": "Envoi de {detail}…",
+      "settingMetadata": "Envoi des métadonnées à Zenodo…",
+      "publishingToZenodo": "Finalisation de la publication sur Zenodo…"
+    },
+    "section": {
+      "identity": "Identité du modèle",
+      "authors": "Auteurs",
+      "classification": "Classification",
+      "training": "Données d'entraînement et provenance",
+      "metrics": "Métriques",
+      "description": "Description",
+      "files": "Fichiers du modèle"
+    },
+    "summary": "Résumé en une ligne",
+    "summaryHelp": "Un titre court et descriptif pour le modèle.",
+    "license": "Licence",
+    "softwareName": "Logiciel",
+    "softwareHint": "Indications logicielles (ex. version)",
+    "language": "Langues",
+    "script": "Écritures",
+    "modelType": "Type de modèle",
+    "keywords": "Mots-clés",
+    "datasets": "URLs des jeux de données",
+    "baseModel": "Modèle(s) de base",
+    "baseModelSearch": "Rechercher des modèles dans ce catalogue…",
+    "baseModelHelp": "Choisissez un modèle de base pour un fine-tuning parmi ceux déjà présents dans ce catalogue, ou saisissez une URL externe ci-dessous.",
+    "addCustomUrl": "Ajouter une URL externe",
+    "citation": "URL de citation",
+    "citationHelp": "Lien vers l'article décrivant ce modèle, s'il existe (pas la fiche du modèle elle-même).",
+    "authorName": "Nom",
+    "authorAffiliation": "Affiliation",
+    "authorOrcid": "ORCID",
+    "addAuthor": "Ajouter un auteur",
+    "removeAuthor": "Retirer",
+    "metricName": "Métrique",
+    "metricValue": "Valeur",
+    "metricsHelp": "Métriques courantes : CER (taux d'erreur caractère), WER (taux d'erreur mot), mAP (précision moyenne), Exactitude, score F1. Utilisez celles pertinentes pour la tâche de ce modèle.",
+    "addMetric": "Ajouter une métrique",
+    "removeMetric": "Retirer",
+    "bodyMd": "Description de la fiche du modèle",
+    "bodyMdHelp": "La description longue affichée sur la page du modèle et comme description de l'enregistrement Zenodo.",
+    "dropFiles": "Glissez des fichiers ici ou cliquez pour parcourir",
+    "removeFile": "Retirer",
+    "private": "Demander l'inclusion dans la communauté (décochez pour un dépôt privé/test)",
+    "saveDraft": "Enregistrer le brouillon",
+    "publish": "Publier sur Zenodo",
+    "publishConfirm": "Ceci publiera un enregistrement immuable et citable sur {env}. Continuer ?",
+    "discard": "Abandonner le brouillon",
+    "validationErrors": "Merci de corriger les points suivants avant de publier :",
+    "publishSuccess": "Publié ! DOI : {doi}"
+  },
+  "auth": {
+    "sandboxBanner": "Ce déploiement communique avec le bac à sable Zenodo (sandbox.zenodo.org) — données de test uniquement, non pérennes.",
+    "loginPrompt": "Connectez votre compte Zenodo pour déposer ou versionner des modèles.",
+    "notAuthenticated": "Vous devez d'abord vous connecter avec Zenodo."
+  },
+  "common": {
+    "loading": "Chargement…",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "add": "Ajouter",
+    "remove": "Retirer",
+    "language_en": "Anglais",
+    "language_fr": "Français"
+  }
+}

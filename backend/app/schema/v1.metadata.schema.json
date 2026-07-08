@@ -1,0 +1,176 @@
+ {
+   "$schema": "http://json-schema.org/draft-07/schema#",
+   "$id": "http://example.com/root.json",
+   "type": "object",
+   "title": "ATR model metadata schema",
+   "required": [
+     "id",
+     "authors",
+     "summary",
+     "license",
+     "software_name",
+     "language",
+     "script",
+     "model_type"
+   ],
+   "properties": {
+     "authors": {
+       "$id": "#/properties/authors",
+       "type": "array",
+       "title": "Authors of the model",
+       "items": {
+         "$id": "#/properties/authors/items",
+         "type": "object",
+         "title": "items",
+         "required": ["name"],
+         "properties": {
+           "name": {
+             "$id": "#/properties/authors/items/properties/name",
+             "type": "string",
+             "title": "A single author's name"
+           },
+           "affiliation": {
+             "$id": "#/properties/authors/items/properties/affiliation",
+             "type": "string",
+             "title": "A single author's institutional affiliation"
+           },
+           "orcid": {
+             "$id": "#/properties/authors/items/properties/orcid",
+             "type": "string",
+             "title": "A single author's ORCID",
+	     "format": "uri"
+           }
+         }
+       }
+     },
+     "id": {
+       "$id": "#/properties/id",
+       "type": "string",
+       "title": "Persistent identifier of the model."
+     },
+     "summary": {
+       "$id": "#/properties/summary",
+       "type": "string",
+       "title": "A one-line summary of the model"
+     },
+     "license": {
+       "$id": "#/properties/license",
+       "type": "string",
+       "title": "License of the model. Valid values are in https://github.com/okfn/licenses.",
+       "format": "okfn-license",
+       "controlled_vocabulary": "https://licenses.opendefinition.org/licenses/groups/all.json"
+     },
+     "license_name": {
+       "$id": "#/properties/license_name",
+       "type": "string",
+       "title": "Name of the license if license == 'other-*'"
+     },
+     "license_link": {
+       "$id": "#/properties/license_link",
+       "type": "string",
+       "format": "uri",
+       "title": "Link to the license text if license == 'other-*'"
+     },
+     "software_name": {
+       "$id": "#/properties/software_name",
+       "type": "string",
+       "title": "Name of the software this model can be used with."
+     },
+     "software_hints": {
+       "$id": "#/properties/software_hints",
+       "type": "array",
+       "minItems": 0,
+       "title": "Free text fields, e.g. version, that allows the software in software_name to determine model compatibility.",
+       "items": {
+         "$id": "#/properties/software_hints/items",
+         "type": "string"
+       }
+     },
+    "language": {
+       "$id": "#/properties/language",
+       "type": "array",
+       "uniqueItems": true,
+       "minItems": 1,
+       "title": "ISO 639-3 codes for languages the model has been trained on.",
+       "controlled_vocabulary": "https://iso639-3.sil.org/sites/iso639-3/files/downloads/iso-639-3_Name_Index.tab",
+       "items": {
+         "$id": "#/properties/language/items",
+         "type": "string",
+	 "format": "iso-639-3",
+	 "pattern": "^[a-z]{3}"
+       }
+     },
+    "script": {
+       "$id": "#/properties/script",
+       "type": "array",
+       "uniqueItems": true,
+       "minItems": 1,
+       "title": "ISO 15924 codes for scripts the model has been trained on.",
+       "controlled_vocabulary": "https://unicode.org/iso15924/iso15924.txt",
+       "items": {
+         "$id": "#/properties/script/items",
+         "type": "string",
+	 "format": "iso-15924",
+	 "pattern": "^[A-Z][a-z]{3}"
+       }
+    },
+    "keywords": {
+       "$id": "#/properties/tags",
+       "type": "array",
+       "uniqueItems": true,
+       "minItems": 0,
+       "title": "List of keywords associated with the model.",
+       "items": {
+         "$id": "#/properties/keywords/items",
+         "type": "string"
+       }
+     },
+    "datasets": {
+       "$id": "#/properties/datasets",
+       "type": "array",
+       "uniqueItems": true,
+       "minItems": 0,
+       "title": "List of datasets the model has been trained on.",
+       "items": {
+         "$id": "#/properties/dataset/items",
+         "type": "string",
+	 "format": "uri"
+       }
+     },
+    "model_type": {
+       "$id": "#/properties/model_type",
+       "type": "array",
+       "uniqueItems": true,
+       "minItems": 1,
+       "title": "Function(s) performed by the model, e.g. `recognition`, `segmentation`, `end-to-end`, `reading order`.",
+       "items": {
+         "$id": "#/properties/model_type/items",
+         "type": "string"
+       }
+     },
+    "metrics": {
+       "$id": "#/properties/metrics",
+       "type": "object",
+       "title": "A dictionary of metrics, e.g. {'cer': 4.12, 'wer': 6.8}",
+       "additionalProperties": { "type": "number" }
+     },
+     "base_model": {
+       "$id": "#/properties/base_model",
+       "type": "array",
+       "uniqueItems": true,
+       "minItems": 0,
+       "title": "Base model this model has been fine-tuned from. Can be more than one in case of merges.",
+       "items": {
+         "$id": "#/properties/base_model/items",
+         "type": "string",
+	 "format": "uri"
+       }
+     },
+     "citation": {
+       "$id": "#/properties/citation",
+       "type": "string",
+       "title": "Citation of any publication(s) associated with the model.",
+       "format": "uri"
+     }
+  }
+}
