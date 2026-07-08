@@ -35,6 +35,7 @@ export const api = {
   scripts: () => request('/meta/scripts'),
   licenses: () => request('/meta/licenses'),
   modelTypes: () => request('/meta/model-types'),
+  htrUnitedDatasets: () => request('/meta/datasets'),
 
   listModels: () => request('/models'),
   myModels: () => request('/models/mine'),

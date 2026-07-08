@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app import vocab
+from app import htr_united, vocab
 from app.config import get_settings
 
 router = APIRouter(prefix="/api/meta", tags=["meta"])
@@ -29,6 +29,11 @@ async def model_types():
     # Free-text per HTRMoPo's schema, but these are the conventional values
     # used across existing HTRMoPo model cards.
     return ["recognition", "segmentation", "reading order", "end-to-end"]
+
+
+@router.get("/datasets")
+async def datasets():
+    return await htr_united.fetch_catalog()
 
 
 @router.get("/config")

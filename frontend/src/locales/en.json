@@ -25,7 +25,8 @@
       "license": "License"
     },
     "viewRecord": "View full record",
-    "refresh": "Refresh from Zenodo"
+    "refresh": "Refresh from Zenodo",
+    "yoursSandboxOnly": "yours — sandbox only, not public"
   },
   "detail": {
     "versions": "Versions",
@@ -76,7 +77,9 @@
     "script": "Scripts",
     "modelType": "Model type",
     "keywords": "Keywords",
-    "datasets": "Dataset URLs",
+    "datasets": "Training datasets",
+    "datasetsSearch": "Search the HTR-United catalog…",
+    "datasetsHelp": "Pick a dataset from the HTR-United catalog, or type an external URL below.",
     "baseModel": "Base model(s)",
     "baseModelSearch": "Search models in this catalog…",
     "baseModelHelp": "Pick a fine-tuning base from models already in this catalog, or type an external URL below.",

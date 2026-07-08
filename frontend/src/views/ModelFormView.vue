@@ -44,7 +44,9 @@ const selectedModelTypes = ref([])
 const languageQuery = ref('')
 const scriptQuery = ref('')
 const baseModelQuery = ref('')
+const datasetQuery = ref('')
 const catalogModels = ref([])
+const htrUnitedDatasets = ref([])
 const files = ref([])
 const isPrivate = ref(true)
 const errors = ref([])
@@ -54,13 +56,15 @@ const progress = ref('')
 const publishedDoi = ref('')
 
 onMounted(async () => {
-  ;[languages.value, scripts.value, licenses.value, modelTypes.value, catalogModels.value] = await Promise.all([
-    api.languages(),
-    api.scripts(),
-    api.licenses(),
-    api.modelTypes(),
-    api.listModels(),
-  ])
+  ;[languages.value, scripts.value, licenses.value, modelTypes.value, catalogModels.value, htrUnitedDatasets.value] =
+    await Promise.all([
+      api.languages(),
+      api.scripts(),
+      api.licenses(),
+      api.modelTypes(),
+      api.listModels(),
+      api.htrUnitedDatasets(),
+    ])
 
   if (props.recordId) {
     const records = await api.myModels()
@@ -167,6 +171,25 @@ function removeBaseModelRow(i) {
 }
 function baseModelLabel(url) {
   const match = catalogModels.value.find((m) => zenodoRecordUrl(m.latest_version?.doi) === url)
+  return match ? match.title : ''
+}
+
+const datasetOptions = computed(() => {
+  const q = datasetQuery.value.trim().toLowerCase()
+  return htrUnitedDatasets.value
+    .filter((d) => !datasetRows.includes(d.url))
+    .filter((d) => !q || d.title.toLowerCase().includes(q))
+    .slice(0, 8)
+})
+
+function addDatasetFromCatalog(dataset) {
+  const emptyIdx = datasetRows.findIndex((v) => !v.trim())
+  if (emptyIdx !== -1) datasetRows[emptyIdx] = dataset.url
+  else datasetRows.push(dataset.url)
+  datasetQuery.value = ''
+}
+function datasetLabel(url) {
+  const match = htrUnitedDatasets.value.find((d) => d.url === url)
   return match ? match.title : ''
 }
 
@@ -450,8 +473,16 @@ async function publish() {
       <h2>{{ t('form.section.training') }}</h2>
       <div class="form-group">
         <label class="form-label">{{ t('form.datasets') }}</label>
-        <div class="metric-row" v-for="(row, i) in datasetRows" :key="i">
-          <input class="form-input" v-model="datasetRows[i]" placeholder="https://…" />
+        <input class="form-input" v-model="datasetQuery" :placeholder="t('form.datasetsSearch')" />
+        <div class="tag-selector" style="margin-top:8px" v-if="datasetOptions.length">
+          <button class="tag-btn" v-for="d in datasetOptions" :key="d.url" @click="addDatasetFromCatalog(d)">{{ d.title }}</button>
+        </div>
+        <div class="form-help">{{ t('form.datasetsHelp') }}</div>
+        <div class="metric-row" v-for="(row, i) in datasetRows" :key="i" style="margin-top:8px">
+          <div style="flex:1">
+            <input class="form-input" v-model="datasetRows[i]" placeholder="https://…" />
+            <div class="form-help" v-if="datasetLabel(datasetRows[i])">→ {{ datasetLabel(datasetRows[i]) }}</div>
+          </div>
           <button class="btn btn--ghost" @click="removeDatasetRow(i)" v-if="datasetRows.length > 1">{{ t('form.remove') }}</button>
         </div>
         <button class="add-row-btn" @click="addDatasetRow">+ {{ t('common.add') }}</button>

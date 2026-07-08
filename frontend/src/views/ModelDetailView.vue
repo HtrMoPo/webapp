@@ -28,7 +28,7 @@ function zenodoUrl(doi) {
   return recid ? `${auth.zenodoBaseUrl}/records/${recid}` : '#'
 }
 
-const isOwner = computed(() => auth.authenticated)
+const isOwner = computed(() => record.value?.is_owner ?? false)
 </script>
 
 <template>

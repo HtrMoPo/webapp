@@ -77,10 +77,30 @@ def _version_summary(version: ModelVersion) -> dict:
 
 
 @router.get("")
-async def list_models(db: AsyncSession = Depends(get_db)):
+async def list_models(request: Request, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(ModelRecord).options(selectinload(ModelRecord.versions)))
     records = result.scalars().all()
-    return [_record_summary(r) for r in records if any(_is_public(v) for v in r.versions)]
+    session_user_id = request.session.get("user_id")
+
+    output = []
+    for r in records:
+        public_versions = [v for v in r.versions if _is_public(v)]
+        is_mine = session_user_id is not None and session_user_id == r.owner_user_id
+
+        if public_versions:
+            output.append({**_record_summary(r, public_versions), "is_mine": is_mine, "is_public": True})
+        elif is_mine:
+            # Not yet public (e.g. sandbox-only), but it's the requester's own
+            # record -- surface it to them (badged on the frontend), with any
+            # of their own published versions (sandbox included). Records
+            # with nothing published at all (pure drafts) still don't show
+            # here; there's nothing to browse yet, and they're already
+            # visible on /mine.
+            own_versions = [v for v in r.versions if v.status == "published"]
+            if own_versions:
+                output.append({**_record_summary(r, own_versions), "is_mine": True, "is_public": False})
+
+    return output
 
 
 @router.get("/mine")
@@ -118,6 +138,7 @@ async def get_model(slug: str, request: Request, db: AsyncSession = Depends(get_
         raise HTTPException(status_code=404, detail="not_found")
     return {
         **_record_summary(record, visible_versions),
+        "is_owner": is_owner,
         "versions": [_version_summary(v) for v in visible_versions],
     }
 

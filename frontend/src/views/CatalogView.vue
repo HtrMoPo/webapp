@@ -126,6 +126,7 @@ const filtered = computed(() => {
           <div class="card__body">
             <p class="card__desc">{{ m.summary }}</p>
             <div class="chips">
+              <span class="chip chip--slate" v-if="!m.is_public"><span class="chip__v">{{ t('catalog.yoursSandboxOnly') }}</span></span>
               <span class="chip chip--rose" v-for="l in m.language" :key="l"><span class="chip__k">lang</span><span class="chip__v">{{ l }}</span></span>
               <span class="chip chip--rose" v-for="s in m.script" :key="s"><span class="chip__k">script</span><span class="chip__v">{{ s }}</span></span>
               <span class="chip chip--green"><span class="chip__k">license</span><span class="chip__v">{{ m.license }}</span></span>

@@ -25,7 +25,8 @@
       "license": "Licence"
     },
     "viewRecord": "Voir la fiche complète",
-    "refresh": "Actualiser depuis Zenodo"
+    "refresh": "Actualiser depuis Zenodo",
+    "yoursSandboxOnly": "à vous — bac à sable, non public"
   },
   "detail": {
     "versions": "Versions",
@@ -76,7 +77,9 @@
     "script": "Écritures",
     "modelType": "Type de modèle",
     "keywords": "Mots-clés",
-    "datasets": "URLs des jeux de données",
+    "datasets": "Données d'entraînement",
+    "datasetsSearch": "Rechercher dans le catalogue HTR-United…",
+    "datasetsHelp": "Choisissez un jeu de données du catalogue HTR-United, ou saisissez une URL externe ci-dessous.",
     "baseModel": "Modèle(s) de base",
     "baseModelSearch": "Rechercher des modèles dans ce catalogue…",
     "baseModelHelp": "Choisissez un modèle de base pour un fine-tuning parmi ceux déjà présents dans ce catalogue, ou saisissez une URL externe ci-dessous.",
