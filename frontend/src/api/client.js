@@ -36,6 +36,7 @@ export const api = {
   licenses: () => request('/meta/licenses'),
   modelTypes: () => request('/meta/model-types'),
   htrUnitedDatasets: () => request('/meta/datasets'),
+  refreshHtrUnitedDatasets: () => request('/meta/datasets/refresh', { method: 'POST' }),
 
   listModels: () => request('/models'),
   myModels: () => request('/models/mine'),

@@ -10,6 +10,7 @@ const auth = useAuth()
 const models = ref([])
 const loading = ref(true)
 const refreshing = ref(false)
+const refreshingDatasets = ref(false)
 const search = ref('')
 const selected = ref({ language: new Set(), script: new Set(), model_type: new Set(), license: new Set() })
 
@@ -31,6 +32,17 @@ async function refreshFromZenodo() {
     // best-effort refresh; the nightly/post-publish harvest will catch up regardless
   } finally {
     refreshing.value = false
+  }
+}
+
+async function refreshDatasetsCatalog() {
+  refreshingDatasets.value = true
+  try {
+    await api.refreshHtrUnitedDatasets()
+  } catch {
+    // best-effort refresh; the nightly refresh will catch up regardless
+  } finally {
+    refreshingDatasets.value = false
   }
 }
 
@@ -113,6 +125,14 @@ const filtered = computed(() => {
           @click="refreshFromZenodo"
         >
           {{ refreshing ? t('common.loading') : t('catalog.refresh') }}
+        </button>
+        <button
+          v-if="auth.isAdmin"
+          class="btn btn--ghost"
+          :disabled="refreshingDatasets"
+          @click="refreshDatasetsCatalog"
+        >
+          {{ refreshingDatasets ? t('common.loading') : t('catalog.refreshDatasets') }}
         </button>
       </div>
 

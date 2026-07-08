@@ -132,6 +132,17 @@ Harvested records never overwrite ones actually owned by a user through this app
 via `model_records.source`, `"app"` vs `"harvested"`) — harvesting only fills in/refreshes
 records nobody here has published themselves.
 
+## HTR-United dataset catalog cache
+
+The "Training datasets" search box in the model form is backed by the real
+[HTR-United catalog](https://htr-united.github.io/htr-united/catalog.json), cached to a
+local JSON file (`./data/htr_united_cache.json` — same volume as the SQLite DB, so it
+survives restarts) rather than refetched on every page load. Refreshed via conditional
+GET (ETag/Last-Modified, so an unchanged upstream catalog costs almost nothing):
+- **Once a day**, in the same nightly loop as the Zenodo catalog harvest above.
+- **On demand** via the "Refresh HTR-United datasets" button on the catalog page, or
+  `POST /api/meta/datasets/refresh` — **admin-only**, same reasoning as the Zenodo one.
+
 ## Admin users
 
 Base (logged-in) users can publish/version their own models but can't trigger an on-demand

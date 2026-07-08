@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from starlette.middleware.sessions import SessionMiddleware
 
-from app import harvest
+from app import harvest, htr_united
 from app.config import get_settings
 from app.db import async_session
 from app.routers import auth, meta, models
@@ -26,10 +26,11 @@ if settings.zenodo_env == "production" and settings.session_secret in ("", "chan
 
 
 async def _nightly_harvest_loop() -> None:
-    """Runs app.harvest.sync_ocr_models once a day, in addition to the
-    refresh already triggered by every publish. No OS-level cron/scheduler
-    needed -- this is a plain asyncio task tied to the app process's
-    lifetime, which is fine given the app runs as a single process/worker."""
+    """Runs app.harvest.sync_ocr_models and app.htr_united.refresh_catalog
+    once a day, in addition to the Zenodo refresh already triggered by every
+    publish. No OS-level cron/scheduler needed -- this is a plain asyncio
+    task tied to the app process's lifetime, which is fine given the app
+    runs as a single process/worker."""
     while True:
         now = dt.datetime.now(dt.timezone.utc)
         target = now.replace(hour=settings.nightly_harvest_hour_utc, minute=0, second=0, microsecond=0)
@@ -42,6 +43,11 @@ async def _nightly_harvest_loop() -> None:
                 logger.info("Nightly catalog harvest: %s", summary)
         except Exception:
             logger.exception("Nightly catalog harvest failed")
+        try:
+            summary = await htr_united.refresh_catalog()
+            logger.info("Nightly HTR-United catalog refresh: %s", summary)
+        except Exception:
+            logger.exception("Nightly HTR-United catalog refresh failed")
 
 
 @asynccontextmanager

@@ -1,7 +1,9 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
 
 from app import htr_united, vocab
 from app.config import get_settings
+from app.deps import get_current_user
+from app.models import User
 
 router = APIRouter(prefix="/api/meta", tags=["meta"])
 
@@ -34,6 +36,16 @@ async def model_types():
 @router.get("/datasets")
 async def datasets():
     return await htr_united.fetch_catalog()
+
+
+@router.post("/datasets/refresh")
+async def refresh_datasets(user: User = Depends(get_current_user)):
+    """Admin-only: forces an immediate HTR-United catalog refresh, in
+    addition to the automatic nightly one. Uses a conditional GET, so this
+    is cheap even if the upstream catalog hasn't actually changed."""
+    if not user.is_admin:
+        raise HTTPException(status_code=403, detail="admin_required")
+    return await htr_united.refresh_catalog()
 
 
 @router.get("/config")

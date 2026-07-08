@@ -26,6 +26,7 @@
     },
     "viewRecord": "View full record",
     "refresh": "Refresh from Zenodo",
+    "refreshDatasets": "Refresh HTR-United datasets",
     "yoursSandboxOnly": "yours — sandbox only, not public"
   },
   "detail": {
