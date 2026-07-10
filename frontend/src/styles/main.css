@@ -603,10 +603,14 @@ mark { background: #f3e6a8; color: inherit; border-radius: 3px; padding: 0 1px; 
 
 .author-card {
   border: 1px solid var(--line); border-radius: var(--radius-sm);
-  padding: 16px; margin-bottom: 12px; background: var(--surface-2);
+  padding: 10px 12px; margin-bottom: 8px; background: var(--surface-2);
 }
-.author-card__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.author-card__title { font-size: 13px; font-weight: 700; color: var(--ink-2); }
+.author-row {
+  display: grid; grid-template-columns: 1.1fr 1.1fr 1.3fr auto;
+  gap: 10px; align-items: end;
+}
+.author-row .form-group { margin-bottom: 0; }
+.author-row__remove { flex-shrink: 0; white-space: nowrap; }
 
 .metric-row { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; }
 .metric-row .form-select { flex: 0 0 160px; }
@@ -725,5 +729,6 @@ mark { background: #f3e6a8; color: inherit; border-radius: 3px; padding: 0 1px; 
   .hero h1 { font-size: 34px; }
   .section-grid { grid-template-columns: 1fr; }
   .form-row { grid-template-columns: 1fr; }
+  .author-row { grid-template-columns: 1fr; }
   .grid.is-compact { column-count: 1; }
 }

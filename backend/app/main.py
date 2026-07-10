@@ -7,13 +7,14 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from starlette.middleware.sessions import SessionMiddleware
 
-from app import harvest, htr_united
+from app import claim, harvest, htr_united
 from app.config import get_settings
 from app.db import async_session
-from app.models import HarvestClaim
+from app.models import HarvestClaim, User
 from app.routers import auth, meta, models
 
 settings = get_settings()
@@ -68,12 +69,36 @@ async def _run_catalog_crawl(label: str) -> None:
         logger.exception("%s HTR-United catalog refresh failed", label)
 
 
+async def _run_claim_sync(label: str) -> None:
+    """Runs app.claim.sync_my_depositions for every registered user.
+
+    GET /deposit/depositions can't be trusted to only return depositions a
+    given token actually owns (see app.claim's module docstring -- it's been
+    observed returning other accounts' depositions, likely community-curator
+    visibility bleeding through), so ownership is verified per-record
+    (a posteriori) inside sync_my_depositions itself before anything is ever
+    claimed. Running this nightly for everyone, in addition to the
+    user-triggered "Sync from Zenodo" button, means a user's own un-harvested
+    (no README) community depositions get picked up even if they never click
+    it themselves."""
+    async with async_session() as session:
+        users = (await session.execute(select(User))).scalars().all()
+    for user in users:
+        try:
+            async with async_session() as session:
+                summary = await claim.sync_my_depositions(user, session)
+                logger.info("%s claim sync for user %s: %s", label, user.id, summary)
+        except Exception:
+            logger.exception("%s claim sync failed for user %s", label, user.id)
+
+
 async def _nightly_harvest_loop() -> None:
-    """Runs app.harvest.sync_ocr_models and app.htr_united.refresh_catalog
-    once a day, in addition to the Zenodo refresh already triggered by every
-    publish. No OS-level cron/scheduler needed -- this is a plain asyncio
-    task tied to each worker process's lifetime; _claim() makes sure only
-    one worker actually runs it per UTC day even with several workers."""
+    """Runs app.harvest.sync_ocr_models, app.htr_united.refresh_catalog, and
+    app.claim.sync_my_depositions (for every user) once a day, in addition to
+    the Zenodo refresh already triggered by every publish. No OS-level
+    cron/scheduler needed -- this is a plain asyncio task tied to each worker
+    process's lifetime; _claim() makes sure only one worker actually runs it
+    per UTC day even with several workers."""
     while True:
         now = dt.datetime.now(dt.timezone.utc)
         target = now.replace(hour=settings.nightly_harvest_hour_utc, minute=0, second=0, microsecond=0)
@@ -83,6 +108,7 @@ async def _nightly_harvest_loop() -> None:
         day_key = f"nightly:{dt.datetime.now(dt.timezone.utc).date().isoformat()}"
         if await _claim(day_key):
             await _run_catalog_crawl("Nightly")
+            await _run_claim_sync("Nightly")
 
 
 async def _run_initial_crawl_if_needed() -> None:

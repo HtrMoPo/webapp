@@ -4,7 +4,6 @@ import { marked } from 'marked'
 import TurndownService from 'turndown'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
 import { api } from '../api/client'
 import { useAuth } from '../composables/useAuth'
 import WysiwygEditor from '../components/WysiwygEditor.vue'
@@ -13,7 +12,6 @@ const turndownService = new TurndownService()
 
 const props = defineProps({ recordId: { type: Number, default: null } })
 const { t } = useI18n()
-const router = useRouter()
 const auth = useAuth()
 
 const languages = ref([])
@@ -37,6 +35,11 @@ const citation = ref('')
 // gets HTML rendered back from that Markdown server-side.
 const bodyHtml = ref('')
 const authors = reactive([{ name: '', affiliation: '', orcid: '' }])
+// Secondary authors/collaborators -- not part of the HTRMoPo v1 card schema
+// (unlike `authors`), but Zenodo's own `contributors` field supports them
+// directly; see backend/app/zenodo_client.py's build_zenodo_metadata. Empty
+// by default since, unlike authors, at least one isn't required.
+const contributors = reactive([])
 const metrics = reactive([{ name: '', value: '' }])
 const selectedLanguages = ref([])
 const selectedScripts = ref([])
@@ -49,11 +52,20 @@ const catalogModels = ref([])
 const htrUnitedDatasets = ref([])
 const files = ref([])
 const isPrivate = ref(true)
+// Free-text version label (e.g. "1.6.0") -- not part of the HTRMoPo v1 card
+// schema/catalog metadata, only sent through to Zenodo's own `version`
+// field at publish time (see PublishIn.version on the backend).
+const versionLabel = ref('')
 const errors = ref([])
 const publishing = ref(false)
 const saving = ref(false)
 const progress = ref('')
 const publishedDoi = ref('')
+// Set right after a successful publish, holding {doi, slug} -- while set, the
+// form is replaced with a success panel nudging the user to also fill in
+// Zenodo-specific metadata (e.g. funding/grants) that this app's HTRMoPo
+// card doesn't cover, before they move on to the model's page.
+const justPublished = ref(null)
 
 onMounted(async () => {
   ;[languages.value, scripts.value, licenses.value, modelTypes.value, catalogModels.value, htrUnitedDatasets.value] =
@@ -104,6 +116,13 @@ function prefill(version) {
     orcid: a.orcid ?? '',
   }))
   authors.splice(0, authors.length, ...(loadedAuthors.length ? loadedAuthors : [{ name: '', affiliation: '', orcid: '' }]))
+
+  const loadedContributors = (metadata.contributors ?? []).map((a) => ({
+    name: a.name ?? '',
+    affiliation: a.affiliation ?? '',
+    orcid: a.orcid ?? '',
+  }))
+  contributors.splice(0, contributors.length, ...loadedContributors)
 
   const loadedMetrics = Object.entries(metadata.metrics ?? {}).map(([name, value]) => ({ name, value: String(value) }))
   metrics.splice(0, metrics.length, ...(loadedMetrics.length ? loadedMetrics : [{ name: '', value: '' }]))
@@ -206,6 +225,12 @@ function addAuthor() {
 function removeAuthor(i) {
   authors.splice(i, 1)
 }
+function addContributor() {
+  contributors.push({ name: '', affiliation: '', orcid: '' })
+}
+function removeContributor(i) {
+  contributors.splice(i, 1)
+}
 function addMetric() {
   metrics.push({ name: '', value: '' })
 }
@@ -236,6 +261,17 @@ function splitLines(s) {
   return s.split('\n').map((l) => l.trim()).filter(Boolean)
 }
 
+function cleanPeople(list) {
+  return list
+    .filter((p) => p.name.trim())
+    .map((p) => {
+      const out = { name: p.name.trim() }
+      if (p.affiliation.trim()) out.affiliation = p.affiliation.trim()
+      if (p.orcid.trim()) out.orcid = p.orcid.trim()
+      return out
+    })
+}
+
 const metadata = computed(() => {
   const md = {
     summary: summary.value,
@@ -252,13 +288,9 @@ const metadata = computed(() => {
   const cleanBaseModels = baseModelRows.map((v) => v.trim()).filter(Boolean)
   if (cleanBaseModels.length) md.base_model = cleanBaseModels
   if (citation.value.trim()) md.citation = citation.value.trim()
-  const cleanAuthors = authors.filter((a) => a.name.trim()).map((a) => {
-    const out = { name: a.name.trim() }
-    if (a.affiliation.trim()) out.affiliation = a.affiliation.trim()
-    if (a.orcid.trim()) out.orcid = a.orcid.trim()
-    return out
-  })
-  md.authors = cleanAuthors
+  md.authors = cleanPeople(authors)
+  const cleanContributors = cleanPeople(contributors)
+  if (cleanContributors.length) md.contributors = cleanContributors
   const cleanMetrics = {}
   for (const m of metrics) {
     if (m.name.trim() && m.value !== '') cleanMetrics[m.name.trim()] = Number(m.value)
@@ -345,10 +377,10 @@ async function publish() {
     const stopFlag = { done: false }
     const pollPromise = pollPublishProgress(id, stopFlag)
     try {
-      const res = await api.publishDraft(id, isPrivate.value)
+      const res = await api.publishDraft(id, isPrivate.value, versionLabel.value.trim())
       publishedDoi.value = res.doi
       versionId.value = null
-      router.push(`/models/${res.slug}`)
+      justPublished.value = { doi: res.doi, slug: res.slug }
     } finally {
       stopFlag.done = true
       await pollPromise
@@ -371,6 +403,24 @@ async function publish() {
   <div v-if="!auth.authenticated" class="page-content">
     <p>{{ t('auth.notAuthenticated') }}</p>
     <a class="btn btn--olive" :href="api.loginUrl()">{{ t('nav.login') }}</a>
+  </div>
+
+  <div v-else-if="justPublished" class="form-page">
+    <div class="form-section">
+      <h2>{{ t('form.publishSuccess', { doi: justPublished.doi }) }}</h2>
+      <p>{{ t('form.zenodoMetadataNudge') }}</p>
+      <div class="output-actions">
+        <a
+          class="btn btn--olive"
+          :href="zenodoRecordUrl(justPublished.doi)"
+          target="_blank"
+          rel="noopener"
+        >{{ t('detail.viewOnZenodo') }}</a>
+        <router-link class="btn btn--ghost" :to="`/models/${justPublished.slug}`">
+          {{ t('form.continueToModel') }}
+        </router-link>
+      </div>
+    </div>
   </div>
 
   <div v-else class="form-page">
@@ -412,11 +462,7 @@ async function publish() {
     <div class="form-section">
       <h2>{{ t('form.section.authors') }}</h2>
       <div class="author-card" v-for="(a, i) in authors" :key="i">
-        <div class="author-card__header">
-          <span class="author-card__title">#{{ i + 1 }}</span>
-          <button class="btn btn--ghost" @click="removeAuthor(i)" v-if="authors.length > 1">{{ t('form.removeAuthor') }}</button>
-        </div>
-        <div class="form-row">
+        <div class="author-row">
           <div class="form-group">
             <label class="form-label">{{ t('form.authorName') }} <span class="req">*</span></label>
             <input class="form-input" v-model="a.name" />
@@ -425,13 +471,37 @@ async function publish() {
             <label class="form-label">{{ t('form.authorAffiliation') }}</label>
             <input class="form-input" v-model="a.affiliation" />
           </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">{{ t('form.authorOrcid') }}</label>
-          <input class="form-input" v-model="a.orcid" placeholder="https://orcid.org/0000-0000-0000-0000" />
+          <div class="form-group">
+            <label class="form-label">{{ t('form.authorOrcid') }}</label>
+            <input class="form-input" v-model="a.orcid" placeholder="https://orcid.org/0000-0000-0000-0000" />
+          </div>
+          <button class="btn btn--ghost author-row__remove" @click="removeAuthor(i)" v-if="authors.length > 1">{{ t('form.removeAuthor') }}</button>
         </div>
       </div>
       <button class="add-row-btn" @click="addAuthor">+ {{ t('form.addAuthor') }}</button>
+    </div>
+
+    <div class="form-section">
+      <h2>{{ t('form.section.collaborators') }}</h2>
+      <p class="form-help">{{ t('form.collaboratorsHelp') }}</p>
+      <div class="author-card" v-for="(c, i) in contributors" :key="i">
+        <div class="author-row">
+          <div class="form-group">
+            <label class="form-label">{{ t('form.authorName') }}</label>
+            <input class="form-input" v-model="c.name" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">{{ t('form.authorAffiliation') }}</label>
+            <input class="form-input" v-model="c.affiliation" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">{{ t('form.authorOrcid') }}</label>
+            <input class="form-input" v-model="c.orcid" placeholder="https://orcid.org/0000-0000-0000-0000" />
+          </div>
+          <button class="btn btn--ghost author-row__remove" @click="removeContributor(i)">{{ t('common.remove') }}</button>
+        </div>
+      </div>
+      <button class="add-row-btn" @click="addContributor">+ {{ t('form.addCollaborator') }}</button>
     </div>
 
     <div class="form-section">
@@ -553,6 +623,11 @@ async function publish() {
     </div>
 
     <div class="form-section">
+      <div class="form-group">
+        <label class="form-label">{{ t('form.versionLabel') }}</label>
+        <input class="form-input" v-model="versionLabel" placeholder="1.0.0" />
+        <div class="form-help">{{ t('form.versionLabelHelp') }}</div>
+      </div>
       <label class="checkbox-item">
         <input type="checkbox" v-model="isPrivate" />
         {{ t('form.private') }}

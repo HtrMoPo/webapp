@@ -11,6 +11,7 @@ them through this app) are never overwritten by harvesting, so this can't
 clobber someone's own in-progress edits with a possibly-stale public copy.
 """
 
+import asyncio
 import datetime as dt
 import logging
 import xml.etree.ElementTree as ET
@@ -28,6 +29,20 @@ logger = logging.getLogger(__name__)
 
 PRODUCTION_OAI_URL = "https://zenodo.org/oai2d"
 _OAI_SET = "user-ocr_models"
+
+
+async def _get_with_retry(client: httpx.AsyncClient, url: str, *, retries: int = 5, **kwargs) -> httpx.Response:
+    """Zenodo's OAI-PMH endpoint has, in practice, returned 502/503/504
+    gateway errors under load for this specific (community-scoped) query --
+    transient, and a retry a few seconds later usually gets through. Without
+    this, a single blip fails the whole harvest with nothing committed (the
+    very first ListRecords page hasn't yielded anything to commit yet)."""
+    for attempt in range(retries + 1):
+        resp = await client.get(url, **kwargs)
+        if resp.status_code not in (502, 503, 504) or attempt == retries:
+            return resp
+        await asyncio.sleep(3)
+    return resp
 
 
 def _doi_from_url(url: str | None) -> str | None:
@@ -79,7 +94,7 @@ async def fetch_ocr_models():
 
     async with httpx.AsyncClient(timeout=60.0) as client:
         while True:
-            resp = await client.get(PRODUCTION_OAI_URL, params=params)
+            resp = await _get_with_retry(client, PRODUCTION_OAI_URL, params=params)
             resp.raise_for_status()
             root = ET.fromstring(resp.content)
 

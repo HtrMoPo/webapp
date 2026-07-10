@@ -42,6 +42,10 @@
     "refreshDatasets": "Refresh HTR-United datasets",
     "yoursSandboxOnly": "yours — sandbox only, not public"
   },
+  "myModels": {
+    "sync": "Sync from Zenodo",
+    "placeholderBadge": "no metadata yet — publish a new version to add it"
+  },
   "detail": {
     "versions": "Versions",
     "published": "Published",
@@ -76,6 +80,7 @@
     "section": {
       "identity": "Model identity",
       "authors": "Authors",
+      "collaborators": "Collaborators",
       "classification": "Classification",
       "training": "Training data & provenance",
       "metrics": "Metrics",
@@ -105,6 +110,8 @@
     "authorOrcid": "ORCID",
     "addAuthor": "Add author",
     "removeAuthor": "Remove",
+    "collaboratorsHelp": "Secondary authors/collaborators. Not part of the HTRMoPo catalog metadata, but sent to Zenodo's own collaborators field if set.",
+    "addCollaborator": "Add collaborator",
     "metricName": "Metric",
     "metricValue": "Value",
     "metricsHelp": "Common metrics: CER (Character Error Rate), WER (Word Error Rate), mAP (mean Average Precision), Accuracy, F1 score. Use whatever is relevant to this model's task.",
@@ -114,6 +121,8 @@
     "bodyMdHelp": "The long-form description shown on the model's page and as the Zenodo record description.",
     "dropFiles": "Drag files here or click to browse",
     "removeFile": "Remove",
+    "versionLabel": "Version",
+    "versionLabelHelp": "A free-text version label (e.g. \"1.6.0\") for this release. Not part of the HTRMoPo catalog metadata, but sent to Zenodo's own version field if set.",
     "private": "Request community inclusion (uncheck for a private/test upload)",
     "saveDraft": "Save draft",
     "publish": "Publish to Zenodo",
@@ -121,7 +130,9 @@
     "discard": "Discard draft",
     "validationErrors": "Please fix the following before publishing:",
     "noFilesError": "Attach at least one model file before publishing.",
-    "publishSuccess": "Published! DOI: {doi}"
+    "publishSuccess": "Published! DOI: {doi}",
+    "zenodoMetadataNudge": "This app only sends the HTRMoPo card fields to Zenodo. Head over to the record on Zenodo to fill in anything else it supports but this form doesn't cover — funding/grant information in particular.",
+    "continueToModel": "Go to the model page"
   },
   "auth": {
     "sandboxBanner": "This deployment talks to the Zenodo Sandbox (sandbox.zenodo.org) — test data only, not durable.",

@@ -40,6 +40,7 @@ export const api = {
 
   listModels: () => request('/models'),
   myModels: () => request('/models/mine'),
+  syncMine: () => request('/models/mine/sync', { method: 'POST' }),
   getModel: (slug) => request(`/models/${slug}`),
 
   createDraft: (payload) => request('/models/drafts', { method: 'POST', body: JSON.stringify(payload) }),
@@ -55,10 +56,10 @@ export const api = {
   deleteFile: (versionId, filename) =>
     request(`/models/versions/${versionId}/files/${encodeURIComponent(filename)}`, { method: 'DELETE' }),
   discardDraft: (versionId) => request(`/models/versions/${versionId}/discard`, { method: 'POST' }),
-  publishDraft: (versionId, priv) =>
+  publishDraft: (versionId, priv, version) =>
     request(`/models/versions/${versionId}/publish`, {
       method: 'POST',
-      body: JSON.stringify({ private: priv }),
+      body: JSON.stringify({ private: priv, version: version || '' }),
     }),
   publishProgress: (versionId) => request(`/models/versions/${versionId}/publish/progress`),
   triggerHarvest: () => request('/models/harvest', { method: 'POST' }),

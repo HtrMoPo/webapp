@@ -6,6 +6,7 @@ records/{id}/versions flow for new versions) but with Authorization: Bearer
 headers (OAuth access tokens) instead of HTRMoPo's ?access_token= query param.
 """
 
+import asyncio
 import re
 from dataclasses import dataclass
 
@@ -117,6 +118,65 @@ class ZenodoClient:
     async def discard(self, deposition_id: str) -> None:
         await self._request("POST", f"{self.api_url}deposit/depositions/{deposition_id}/actions/discard")
 
+    async def _request_with_retry(self, method: str, url: str, *, retries: int = 5, **kwargs) -> httpx.Response:
+        """Like _request, but retries on Zenodo gateway errors (502/503/504).
+        Observed in practice (listing a deposit account's depositions):
+        Zenodo's own reverse proxy has a ~30s timeout, and this particular
+        query routinely takes close to that regardless of page size --
+        individual attempts fail more often than not, but a retry a few
+        seconds later usually gets through, so this retries more
+        persistently than a typical transient-error handler would."""
+        for attempt in range(retries + 1):
+            try:
+                return await self._request(method, url, **kwargs)
+            except ZenodoError as exc:
+                if exc.status_code not in (502, 503, 504) or attempt == retries:
+                    raise
+                await asyncio.sleep(3)
+
+    async def get_deposition(self, deposition_id: str) -> dict:
+        """Single-record GET -- unlike list_my_depositions' summary rows,
+        this reliably includes the true `owners`/`owner` field (see
+        auth._resolve_zenodo_user_id, which relies on the same field from
+        the same endpoint shape). Used by app.claim to verify a deposition
+        is genuinely owned by the caller before claiming it: in practice
+        GET /deposit/depositions?status=... has been observed returning
+        depositions NOT actually owned by the querying token (likely
+        community-curator visibility bleeding through), so its results
+        can't be trusted as "the caller's own" without this cross-check."""
+        resp = await self._request_with_retry("GET", f"{self.api_url}deposit/depositions/{deposition_id}")
+        return resp.json()
+
+    async def list_my_depositions(
+        self, status: str = "published", size: int = 100, all_versions: bool = True
+    ) -> list[dict]:
+        """Lists depositions Zenodo considers visible/manageable via this
+        token with GET /deposit/depositions -- despite being documented as
+        "all depositions for the currently authenticated user", this has
+        been observed in practice to include depositions actually owned by
+        someone else entirely (their `owners` field doesn't match the
+        querying token's account). Callers MUST cross-check each result's
+        true ownership via get_deposition before treating it as the
+        caller's own -- see app.claim.sync_my_depositions.
+
+        all_versions=True (the default) is needed for app.claim to see a
+        concept's full version history -- Zenodo otherwise only returns
+        each concept's single latest version, hiding older ones."""
+        results: list[dict] = []
+        page = 1
+        while True:
+            resp = await self._request_with_retry(
+                "GET",
+                f"{self.api_url}deposit/depositions",
+                params={"status": status, "page": page, "size": size, "all_versions": all_versions},
+            )
+            batch = resp.json()
+            results.extend(batch)
+            if len(batch) < size:
+                break
+            page += 1
+        return results
+
 
 _ORCID_RE = re.compile(r"(\d{4}-\d{4}-\d{4}-\d{3}[\dX])")
 
@@ -135,7 +195,7 @@ def _to_zenodo_creator(author: dict) -> dict:
     return creator
 
 
-def build_zenodo_metadata(card_metadata: dict, body_html: str, private: bool) -> dict:
+def build_zenodo_metadata(card_metadata: dict, body_html: str, private: bool, version: str = "") -> dict:
     """Builds the Zenodo deposition `metadata` object from a parsed model card,
     following the field mapping used by htrmopo/publish.py (adapted for
     creators, since Zenodo expects a bare ORCID id, not HTRMoPo's URI form)."""
@@ -152,6 +212,22 @@ def build_zenodo_metadata(card_metadata: dict, body_html: str, private: bool) ->
     keywords = card_metadata.get("keywords") or card_metadata.get("tags")
     if keywords:
         data["keywords"] = keywords
+
+    # Secondary authors/collaborators -- not part of the HTRMoPo v1 card
+    # schema (see app.claim's module docstring for the same distinction on
+    # the read side), but Zenodo's own `contributors` field supports them
+    # directly. Zenodo requires a `type` per contributor from a fixed
+    # vocabulary; this app doesn't collect one, so "Other" (a valid generic
+    # member of that vocabulary) is used for all of them.
+    contributors = card_metadata.get("contributors")
+    if contributors:
+        data["contributors"] = [{**_to_zenodo_creator(c), "type": "Other"} for c in contributors]
+
+    # A free-text version label (e.g. "1.6.0") -- Zenodo supports this
+    # natively but it isn't part of the HTRMoPo v1 card schema, so it's
+    # passed straight through here rather than round-tripping via card_metadata.
+    if version:
+        data["version"] = version
 
     if not private:
         data["communities"] = [{"identifier": "ocr_models"}]

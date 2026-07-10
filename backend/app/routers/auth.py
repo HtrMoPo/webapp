@@ -1,3 +1,4 @@
+import asyncio
 import datetime as dt
 import logging
 
@@ -55,6 +56,20 @@ oauth.register(
 # re-exchanging.
 _RECENT_CALLBACK_TTL_SECONDS = 120
 
+# Zenodo's own infrastructure has, in practice, occasionally rejected the
+# very first-ever exchange of a genuinely fresh code with invalid_grant
+# (confirmed by request logging: no earlier delivery of the same code
+# preceded it) -- consistent with the general API instability observed
+# elsewhere against this same Zenodo deployment (slow/failing responses on
+# otherwise-simple requests, on both the production and sandbox instances).
+# A short retry of just the token POST, not the whole state-validating flow,
+# sometimes gets through -- but the bad streak can run longer than a couple
+# of attempts (observed: 3 retries over ~10s still failing, then succeeding
+# on a fresh login's 2nd retry moments later), hence the fairly generous
+# retry count here.
+_TOKEN_EXCHANGE_RETRIES = 6
+_TOKEN_EXCHANGE_RETRY_DELAY_SECONDS = 3
+
 
 @router.get("/zenodo/login")
 async def login(request: Request):
@@ -100,13 +115,47 @@ async def callback(request: Request, db: AsyncSession = Depends(get_db)):
     try:
         token = await oauth.zenodo.authorize_access_token(request)
     except OAuthError as exc:
+        if getattr(exc, "error", None) != "invalid_grant":
+            logger.warning(
+                "zenodo callback: token exchange failed for code=%s: error=%r description=%r",
+                code_fp,
+                getattr(exc, "error", None),
+                getattr(exc, "description", None),
+            )
+            raise HTTPException(status_code=400, detail=f"zenodo_oauth_error: {exc}") from exc
+
+        # authorize_access_token already validated (and cleared) state before
+        # attempting the exchange, so a retry only needs to redo the token
+        # POST itself -- fetch_access_token does exactly that, with no
+        # session/state involvement.
         logger.warning(
-            "zenodo callback: token exchange failed for code=%s: error=%r description=%r",
+            "zenodo callback: first exchange of code=%s got invalid_grant; retrying up to %d times",
             code_fp,
-            getattr(exc, "error", None),
-            getattr(exc, "description", None),
+            _TOKEN_EXCHANGE_RETRIES,
         )
-        raise HTTPException(status_code=400, detail=f"zenodo_oauth_error: {exc}") from exc
+        token = None
+        last_exc: Exception = exc
+        for attempt in range(_TOKEN_EXCHANGE_RETRIES):
+            await asyncio.sleep(_TOKEN_EXCHANGE_RETRY_DELAY_SECONDS)
+            try:
+                token = await oauth.zenodo.fetch_access_token(
+                    code=code, redirect_uri=settings.zenodo_redirect_uri
+                )
+                logger.info(
+                    "zenodo callback: retry %d succeeded for code=%s", attempt + 1, code_fp
+                )
+                break
+            except Exception as retry_exc:
+                last_exc = retry_exc
+
+        if token is None:
+            logger.warning(
+                "zenodo callback: token exchange failed for code=%s after retries: error=%r description=%r",
+                code_fp,
+                getattr(last_exc, "error", None),
+                getattr(last_exc, "description", None),
+            )
+            raise HTTPException(status_code=400, detail=f"zenodo_oauth_error: {last_exc}") from last_exc
     except Exception as exc:
         logger.exception("zenodo callback: unexpected error exchanging code=%s", code_fp)
         raise HTTPException(

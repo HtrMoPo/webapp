@@ -123,6 +123,13 @@ class ModelVersion(Base):
     # "draft" | "published" | "discarded"
     status: Mapped[str] = mapped_column(String, default="draft")
 
+    # True for an auto-created placeholder representing a Zenodo deposition
+    # the user owns but this app never harvested (no README, or an
+    # unparseable one). Excluded from the public catalog and slug lookup for
+    # everyone, including the owner, until a real new version is published
+    # through the app (see app.claim.sync_my_depositions).
+    is_placeholder: Mapped[bool] = mapped_column(default=False)
+
     created_at: Mapped[dt.datetime] = mapped_column(default=_now)
     published_at: Mapped[dt.datetime | None] = mapped_column(nullable=True)
 

@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app import card, harvest, progress, storage
+from app import card, claim, harvest, progress, storage
 from app.config import get_settings
 from app.db import async_session, get_db
 from app.deps import get_current_user
@@ -42,7 +42,9 @@ def _is_public(version: ModelVersion) -> bool:
     # The public catalog only ever shows versions actually published to
     # production Zenodo, so sandbox test publishes never leak into it --
     # regardless of which ZENODO_ENV this deployment currently runs under.
-    return version.status == "published" and version.zenodo_env == "production"
+    # Placeholder versions (see app.claim) are never public either -- they
+    # exist only to unblock publishing a real version from "My Models".
+    return version.status == "published" and version.zenodo_env == "production" and not version.is_placeholder
 
 
 def _record_summary(record: ModelRecord, versions: list[ModelVersion] | None = None) -> dict:
@@ -73,6 +75,7 @@ def _version_summary(version: ModelVersion) -> dict:
         "published_at": version.published_at.isoformat() if version.published_at else None,
         "card_yaml": version.card_yaml,
         "card_body_md": version.card_body_md,
+        "is_placeholder": version.is_placeholder,
     }
 
 
@@ -96,7 +99,7 @@ async def list_models(request: Request, db: AsyncSession = Depends(get_db)):
             # with nothing published at all (pure drafts) still don't show
             # here; there's nothing to browse yet, and they're already
             # visible on /mine.
-            own_versions = [v for v in r.versions if v.status == "published"]
+            own_versions = [v for v in r.versions if v.status == "published" and not v.is_placeholder]
             if own_versions:
                 output.append({**_record_summary(r, own_versions), "is_mine": True, "is_public": False})
 
@@ -117,6 +120,16 @@ async def my_models(user: User = Depends(get_current_user), db: AsyncSession = D
     ]
 
 
+@router.post("/mine/sync")
+async def sync_mine(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Pulls in the caller's own ocr_models-community Zenodo depositions
+    this app never harvested (no README, or an unparseable one), so they
+    show up here to be turned into a real new version. Scoped to the
+    caller's own token/data, so unlike /models/harvest this needs no admin
+    gate."""
+    return await claim.sync_my_depositions(user, db)
+
+
 @router.get("/{slug}")
 async def get_model(slug: str, request: Request, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
@@ -132,7 +145,9 @@ async def get_model(slug: str, request: Request, db: AsyncSession = Depends(get_
     session_user_id = request.session.get("user_id")
     is_owner = session_user_id is not None and session_user_id == record.owner_user_id
     visible_versions = [
-        v for v in record.versions if v.status == "published" and (is_owner or v.zenodo_env == "production")
+        v
+        for v in record.versions
+        if v.status == "published" and not v.is_placeholder and (is_owner or v.zenodo_env == "production")
     ]
     if not visible_versions:
         raise HTTPException(status_code=404, detail="not_found")
@@ -299,6 +314,12 @@ async def discard_draft(
 
 class PublishIn(BaseModel):
     private: bool = False
+    # Free-text version label (e.g. "1.6.0") some depositors like to set on
+    # Zenodo -- not part of the HTRMoPo v1 card schema/catalog metadata, so
+    # it's only ever sent through to Zenodo's own `metadata.version` field at
+    # publish time, never persisted on ModelRecord/ModelVersion or the card
+    # YAML itself.
+    version: str = ""
 
 
 @router.post("/versions/{version_id}/publish")
@@ -351,7 +372,9 @@ async def publish_draft(
             await client.upload_file(deposition.bucket_url, path.name, path.read_bytes())
 
         progress.set_progress(version_id, "setting_metadata")
-        zenodo_metadata = build_zenodo_metadata(metadata, card.render_body_html(parsed.body_md), body.private)
+        zenodo_metadata = build_zenodo_metadata(
+            metadata, card.render_body_html(parsed.body_md), body.private, version=body.version
+        )
         await client.put_metadata(deposition.id, zenodo_metadata)
 
         progress.set_progress(version_id, "publishing")

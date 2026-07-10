@@ -42,6 +42,10 @@
     "refreshDatasets": "Actualiser les jeux de données HTR-United",
     "yoursSandboxOnly": "à vous — bac à sable, non public"
   },
+  "myModels": {
+    "sync": "Synchroniser depuis Zenodo",
+    "placeholderBadge": "pas encore de métadonnées — publiez une nouvelle version pour les ajouter"
+  },
   "detail": {
     "versions": "Versions",
     "published": "Publié",
@@ -76,6 +80,7 @@
     "section": {
       "identity": "Identité du modèle",
       "authors": "Auteurs",
+      "collaborators": "Collaborateurs",
       "classification": "Classification",
       "training": "Données d'entraînement et provenance",
       "metrics": "Métriques",
@@ -105,6 +110,8 @@
     "authorOrcid": "ORCID",
     "addAuthor": "Ajouter un auteur",
     "removeAuthor": "Retirer",
+    "collaboratorsHelp": "Auteurs secondaires/collaborateurs. Ne fait pas partie des métadonnées du catalogue HTRMoPo, mais est envoyé au champ collaborateurs de Zenodo s'il est renseigné.",
+    "addCollaborator": "Ajouter un collaborateur",
     "metricName": "Métrique",
     "metricValue": "Valeur",
     "metricsHelp": "Métriques courantes : CER (taux d'erreur caractère), WER (taux d'erreur mot), mAP (précision moyenne), Exactitude, score F1. Utilisez celles pertinentes pour la tâche de ce modèle.",
@@ -114,6 +121,8 @@
     "bodyMdHelp": "La description longue affichée sur la page du modèle et comme description de l'enregistrement Zenodo.",
     "dropFiles": "Glissez des fichiers ici ou cliquez pour parcourir",
     "removeFile": "Retirer",
+    "versionLabel": "Version",
+    "versionLabelHelp": "Un libellé de version libre (ex. « 1.6.0 ») pour cette publication. Ne fait pas partie des métadonnées du catalogue HTRMoPo, mais est envoyé au champ version de Zenodo s'il est renseigné.",
     "private": "Demander l'inclusion dans la communauté (décochez pour un dépôt privé/test)",
     "saveDraft": "Enregistrer le brouillon",
     "publish": "Publier sur Zenodo",
@@ -121,7 +130,9 @@
     "discard": "Abandonner le brouillon",
     "validationErrors": "Merci de corriger les points suivants avant de publier :",
     "noFilesError": "Joignez au moins un fichier de modèle avant de publier.",
-    "publishSuccess": "Publié ! DOI : {doi}"
+    "publishSuccess": "Publié ! DOI : {doi}",
+    "zenodoMetadataNudge": "Cette application n'envoie à Zenodo que les champs de la fiche HTRMoPo. Rendez-vous sur l'enregistrement Zenodo pour renseigner tout ce qu'il prend en charge mais que ce formulaire ne couvre pas — en particulier les informations de financement.",
+    "continueToModel": "Aller à la page du modèle"
   },
   "auth": {
     "sandboxBanner": "Ce déploiement communique avec le bac à sable Zenodo (sandbox.zenodo.org) — données de test uniquement, non pérennes.",

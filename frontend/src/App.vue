@@ -46,7 +46,22 @@ async function logout() {
 
   <footer class="site-footer">
     <div class="site-footer__inner">
-      <div class="site-footer__copy">HTRMoPo App — Kraken model catalog, built on the HTRMoPo scheme.</div>
+      <div class="site-footer__copy">
+        <p>HTRMoPo App — Kraken model catalog, built on the HTRMoPo scheme.</p>
+        <ul>
+          <li><a href="https://github.com/HtrMoPo/webapp" target="_blank" rel="noopener" :title="t('home.links.repo')">
+                <svg class="icon"><use :href="`${baseUrl}icons.svg#github-icon`" /></svg>
+                {{ t('home.links.repo') }}
+              </a>
+          </li>
+          <li>
+            <a href="https://github.com/HtrMoPo/HTRMoPo" target="_blank" rel="noopener" :title="t('home.links.htrmopo')">
+              <svg class="icon"><use :href="`${baseUrl}icons.svg#github-icon`" /></svg>
+              {{ t('home.links.htrmopo') }}
+            </a>
+          </li>
+        </ul>
+      </div>
 
       <div class="footer-meta">
         <span class="footer-meta__item">
@@ -59,16 +74,6 @@ async function logout() {
         </span>
       </div>
 
-      <div class="footer-links">
-        <a href="https://github.com/HtrMoPo/webapp" target="_blank" rel="noopener" :title="t('home.links.repo')">
-          <svg class="icon"><use :href="`${baseUrl}icons.svg#github-icon`" /></svg>
-          {{ t('home.links.repo') }}
-        </a>
-        <a href="https://github.com/HtrMoPo/HTRMoPo" target="_blank" rel="noopener" :title="t('home.links.htrmopo')">
-          <svg class="icon"><use :href="`${baseUrl}icons.svg#github-icon`" /></svg>
-          {{ t('home.links.htrmopo') }}
-        </a>
-      </div>
     </div>
   </footer>
 </template>
@@ -110,22 +115,24 @@ async function logout() {
   text-decoration: underline;
 }
 
-.footer-links {
+.site-footer__copy ul {
   display: flex;
   gap: 16px;
   margin-top: 10px;
+  padding: 0;
+  list-style: none;
 }
-.footer-links a {
+.site-footer__copy ul a {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: 13px;
   color: var(--ink-3);
 }
-.footer-links a:hover {
+.site-footer__copy ul a:hover {
   color: var(--ink-2);
 }
-.footer-links .icon {
+.site-footer__copy .icon {
   width: 16px;
   height: 16px;
   opacity: 0.8;
