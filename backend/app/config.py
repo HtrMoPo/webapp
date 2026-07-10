@@ -38,6 +38,13 @@ class Settings(BaseSettings):
     enable_nightly_harvest: bool = True
     nightly_harvest_hour_utc: int = 2
 
+    # Python logging level name (e.g. "DEBUG", "INFO", "WARNING") applied to
+    # the app's own loggers -- see app.main's logging.basicConfig call.
+    # Uvicorn's default logging setup doesn't configure the root logger, so
+    # without this INFO-level diagnostics (e.g. the Zenodo OAuth callback
+    # logging in app.routers.auth) are silently dropped.
+    log_level: str = "INFO"
+
     @property
     def zenodo_base_url(self) -> str:
         if self.zenodo_env == "production":

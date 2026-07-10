@@ -60,15 +60,21 @@ def _parse_dcat_metadata(metadata_el: ET.Element) -> dict:
     }
 
 
-async def fetch_ocr_models() -> list[dict]:
+async def fetch_ocr_models():
     """Harvests every parseable v1 record from the ocr_models community.
 
-    Returns a list of dicts: doi, concept_doi, metadata (parsed HTRMoPo v1
-    front matter), body_html, files, published_at. Records that fail to
-    parse (non-v1, malformed front matter, no README.md) are skipped rather
-    than aborting the whole harvest.
+    Yields dicts (doi, concept_doi, metadata, body_html, files,
+    published_at) one at a time as they're parsed, rather than collecting
+    the whole community into memory before returning: OAI-PMH resumption
+    tokens are time-limited, and fetching each record's README.md is a
+    separate, sometimes slow, round trip -- with hundreds of records across
+    several pages, that pagination can genuinely take long enough for a
+    later page's token to expire. Yielding incrementally lets the caller
+    (sync_ocr_models) commit as it goes, so a later page failing doesn't
+    throw away everything already harvested. Records that fail to parse
+    (non-v1, malformed front matter, no README.md) are skipped rather than
+    aborting the whole harvest.
     """
-    results: list[dict] = []
     params = {"verb": "ListRecords", "metadataPrefix": "dcat", "set": _OAI_SET}
 
     async with httpx.AsyncClient(timeout=60.0) as client:
@@ -111,28 +117,24 @@ async def fetch_ocr_models() -> list[dict]:
                     continue
 
                 datestamp_el = header_el.find("./{*}datestamp") if header_el is not None else None
-                results.append(
-                    {
-                        "doi": dcat["doi"],
-                        "concept_doi": dcat["concept_doi"] or dcat["doi"],
-                        "metadata": parsed.metadata,
-                        "body_html": parsed.body_md,
-                        "files": [
-                            {"filename": f["url"].rsplit("/", 1)[-1], "size": f["size"]}
-                            for f in dcat["distribution"]
-                            if not f["url"].endswith("README.md")
-                        ],
-                        "published_at": datestamp_el.text if datestamp_el is not None else None,
-                    }
-                )
+                yield {
+                    "doi": dcat["doi"],
+                    "concept_doi": dcat["concept_doi"] or dcat["doi"],
+                    "metadata": parsed.metadata,
+                    "body_html": parsed.body_md,
+                    "files": [
+                        {"filename": f["url"].rsplit("/", 1)[-1], "size": f["size"]}
+                        for f in dcat["distribution"]
+                        if not f["url"].endswith("README.md")
+                    ],
+                    "published_at": datestamp_el.text if datestamp_el is not None else None,
+                }
 
             resumption_el = list_records_el.find("./{*}resumptionToken")
             token = resumption_el.text if resumption_el is not None else None
             if not token:
                 break
             params = {"verb": "ListRecords", "resumptionToken": token}
-
-    return results
 
 
 def _parse_datestamp(value: str | None) -> dt.datetime | None:
@@ -147,12 +149,23 @@ def _parse_datestamp(value: str | None) -> dt.datetime | None:
 async def sync_ocr_models(db: AsyncSession) -> dict:
     """Fetches the community listing and upserts it into our catalog tables.
 
-    Returns a summary dict: {"seen": N, "created": N, "updated": N, "skipped_owned": N}.
-    """
-    harvested = await fetch_ocr_models()
-    created = updated = skipped_owned = 0
+    Commits after each record rather than once at the end: fetch_ocr_models
+    can span several OAI-PMH pages, and a later page's resumption token can
+    expire (observed as an httpx.HTTPStatusError partway through) before the
+    whole harvest finishes. A single final commit would then discard every
+    record already harvested; committing incrementally means whatever was
+    fetched before the failure is kept, and the next run (nightly, or an
+    admin-triggered retry) only has to pick up from where this one stopped.
 
-    for item in harvested:
+    Returns a summary dict: {"seen": N, "created": N, "updated": N, "skipped_owned": N}.
+    Raises whatever fetch_ocr_models raises (e.g. on an expired resumption
+    token) after committing everything harvested so far -- callers should
+    expect this to be a partial, not total, failure.
+    """
+    created = updated = skipped_owned = seen = 0
+
+    async for item in fetch_ocr_models():
+        seen += 1
         result = await db.execute(select(ModelRecord).where(ModelRecord.concept_doi == item["concept_doi"]))
         record = result.scalar_one_or_none()
 
@@ -197,5 +210,6 @@ async def sync_ocr_models(db: AsyncSession) -> dict:
         version.zenodo_env = "production"
         version.published_at = _parse_datestamp(item["published_at"]) or version.published_at
 
-    await db.commit()
-    return {"seen": len(harvested), "created": created, "updated": updated, "skipped_owned": skipped_owned}
+        await db.commit()
+
+    return {"seen": seen, "created": created, "updated": updated, "skipped_owned": skipped_owned}

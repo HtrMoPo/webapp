@@ -37,6 +37,40 @@ class User(Base):
     model_records: Mapped[list["ModelRecord"]] = relationship(back_populates="owner")
 
 
+class RecentOAuthCallback(Base):
+    """Zenodo authorization codes are single-use; a duplicate delivery of the
+    same callback (browser back-forward-cache replay, tab/session restore, a
+    double click) that re-exchanges the code gets invalid_grant even though
+    the first delivery already succeeded. See app.routers.auth.callback --
+    the first delivery records the outcome here so a duplicate, on whichever
+    worker it lands on, can redirect straight in instead of re-exchanging.
+    Rows are pruned once past expires_at."""
+
+    __tablename__ = "recent_oauth_callbacks"
+
+    code: Mapped[str] = mapped_column(String, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    expires_at: Mapped[dt.datetime]
+
+
+class HarvestClaim(Base):
+    """Marks a catalog-harvest run (see app.main) as claimed/done, and
+    doubles as the cross-worker mutex that makes sure only one of several
+    uvicorn workers actually runs it: the primary key insert is atomic, so
+    with N workers racing to claim the same key, exactly one wins and the
+    rest see an IntegrityError and back off.
+
+    key="initial" is claimed at most once ever, so a fresh deployment gets a
+    populated catalog right away instead of sitting empty until the next
+    nightly harvest. key="nightly:YYYY-MM-DD" is claimed at most once per UTC
+    day by the nightly harvest loop."""
+
+    __tablename__ = "harvest_claims"
+
+    key: Mapped[str] = mapped_column(String, primary_key=True)
+    claimed_at: Mapped[dt.datetime] = mapped_column(default=_now)
+
+
 class ModelRecord(Base):
     __tablename__ = "model_records"
 
