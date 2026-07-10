@@ -2,13 +2,20 @@
 import { load as loadYaml } from 'js-yaml'
 import { marked } from 'marked'
 import TurndownService from 'turndown'
+import { gfm } from 'turndown-plugin-gfm'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { api } from '../api/client'
 import { useAuth } from '../composables/useAuth'
 import WysiwygEditor from '../components/WysiwygEditor.vue'
 
-const turndownService = new TurndownService()
+// Plain TurndownService has no <table> rule at all -- it just flattens a
+// table's cells into loose text, losing rows/columns entirely. The gfm
+// plugin (also brings strikethrough/task lists/highlighted code, all
+// harmless here) adds proper HTML-table -> Markdown-table conversion,
+// matching what `marked` already parses back correctly when a saved card's
+// body is re-loaded into the editor (see prefill()).
+const turndownService = new TurndownService().use(gfm)
 
 const props = defineProps({ recordId: { type: Number, default: null } })
 const { t } = useI18n()
