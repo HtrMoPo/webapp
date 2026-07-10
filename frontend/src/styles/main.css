@@ -24,6 +24,7 @@
   --blue-bg:   #dde9f4;  --blue-line: #c5dbef;  --blue-ink: #2f5d86;
   --green-bg:  #dde9d2;  --green-line: #c7debb; --green-ink: #43662f;
   --slate-bg:  #e7e5dc;  --slate-line: #d6d2c5; --slate-ink: #5b5749;
+  --amber-bg:  #f5e6cc;  --amber-line: #ebd4a6; --amber-ink: #8a5a1c;
 
   --accent:     #3f7cb0;
   --accent-deep:#2f6191;
@@ -392,6 +393,9 @@ a:hover { color: var(--accent-deep); text-decoration: underline; }
 .chip--blue  .chip__k { background: var(--blue-bg); color: var(--blue-ink); }
 .chip--green { border-color: var(--green-line); }
 .chip--green .chip__k { background: var(--green-bg); color: var(--green-ink); }
+.chip--amber { border-color: var(--amber-line); }
+.chip--amber .chip__k { background: var(--amber-bg); color: var(--amber-ink); }
+.chip--amber .chip__v { background: var(--amber-bg); color: var(--amber-ink); }
 
 mark { background: #f3e6a8; color: inherit; border-radius: 3px; padding: 0 1px; }
 

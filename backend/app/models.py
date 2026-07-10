@@ -120,6 +120,14 @@ class ModelVersion(Base):
     card_body_md: Mapped[str] = mapped_column(Text)
     files: Mapped[list] = mapped_column(JSON, default=list)
 
+    # HTRMoPo metadata schema this version's card was read from/written as:
+    # "v1" (YAML front matter in README.md -- everything this app publishes)
+    # or "v0" (a legacy standalone metadata.json, only ever for kraken text
+    # recognition models). v0 versions are harvested/claimed read-only; their
+    # owner upgrades them to v1 by publishing a new version (which is v1, so
+    # the default here is "v1").
+    schema_version: Mapped[str] = mapped_column(String, default="v1")
+
     # "draft" | "published" | "discarded"
     status: Mapped[str] = mapped_column(String, default="draft")
 

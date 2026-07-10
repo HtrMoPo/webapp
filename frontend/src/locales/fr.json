@@ -40,17 +40,23 @@
     "viewRecord": "Voir la fiche complète",
     "refresh": "Actualiser depuis Zenodo",
     "refreshDatasets": "Actualiser les jeux de données HTR-United",
-    "yoursSandboxOnly": "à vous — bac à sable, non public"
+    "yoursSandboxOnly": "à vous — bac à sable, non public",
+    "legacy": "ancien v0"
   },
   "myModels": {
     "sync": "Synchroniser depuis Zenodo",
-    "placeholderBadge": "pas encore de métadonnées — publiez une nouvelle version pour les ajouter"
+    "placeholderBadge": "pas encore de métadonnées — publiez une nouvelle version pour les ajouter",
+    "legacyBadge": "ancien schéma v0",
+    "upgrade": "Migrer vers le schéma actuel",
+    "upgradeHelp": "Ce modèle utilise l'ancien format de métadonnées v0. Publiez une nouvelle version pour le migrer vers le schéma HTRMoPo actuel."
   },
   "detail": {
     "versions": "Versions",
     "published": "Publié",
     "viewOnZenodo": "Voir sur Zenodo",
     "newVersion": "Publier une nouvelle version",
+    "legacyBadge": "ancien schéma v0",
+    "legacyOwnerNote": "Ce modèle utilise l'ancien format de métadonnées v0. Publiez une nouvelle version pour le migrer vers le schéma HTRMoPo actuel.",
     "metrics": "Métriques",
     "datasets": "Données d'entraînement",
     "baseModel": "Modèle(s) de base",

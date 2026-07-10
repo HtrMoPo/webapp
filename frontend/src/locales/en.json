@@ -40,17 +40,23 @@
     "viewRecord": "View full record",
     "refresh": "Refresh from Zenodo",
     "refreshDatasets": "Refresh HTR-United datasets",
-    "yoursSandboxOnly": "yours — sandbox only, not public"
+    "yoursSandboxOnly": "yours — sandbox only, not public",
+    "legacy": "legacy v0"
   },
   "myModels": {
     "sync": "Sync from Zenodo",
-    "placeholderBadge": "no metadata yet — publish a new version to add it"
+    "placeholderBadge": "no metadata yet — publish a new version to add it",
+    "legacyBadge": "legacy v0 schema",
+    "upgrade": "Upgrade to current schema",
+    "upgradeHelp": "This model uses the legacy v0 metadata format. Publish a new version to upgrade it to the current HTRMoPo schema."
   },
   "detail": {
     "versions": "Versions",
     "published": "Published",
     "viewOnZenodo": "View on Zenodo",
     "newVersion": "Publish a new version",
+    "legacyBadge": "legacy v0 schema",
+    "legacyOwnerNote": "This model uses the legacy v0 metadata format. Publish a new version to upgrade it to the current HTRMoPo schema.",
     "metrics": "Metrics",
     "datasets": "Training datasets",
     "baseModel": "Base model(s)",

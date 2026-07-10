@@ -47,7 +47,13 @@ async function syncFromZenodo() {
     </div>
     <div v-if="loading" class="loading"><div class="spinner"></div>{{ t('common.loading') }}</div>
     <div v-else class="form-section" v-for="r in records" :key="r.id">
-      <h2>{{ r.title || r.slug }}</h2>
+      <h2>
+        {{ r.title || r.slug }}
+        <span class="chip chip--amber" v-if="r.schema_version === 'v0'">
+          <span class="chip__v">{{ t('myModels.legacyBadge') }}</span>
+        </span>
+      </h2>
+      <p class="form-help" v-if="r.schema_version === 'v0'">{{ t('myModels.upgradeHelp') }}</p>
       <ul>
         <li v-for="v in r.versions" :key="v.id">
           <template v-if="v.status === 'draft'">
@@ -64,10 +70,22 @@ async function syncFromZenodo() {
             <span class="chip chip--slate" v-if="v.is_placeholder">
               <span class="chip__v">{{ t('myModels.placeholderBadge') }}</span>
             </span>
+            <span class="chip chip--amber" v-if="v.schema_version === 'v0'">
+              <span class="chip__v">{{ t('myModels.legacyBadge') }}</span>
+            </span>
           </template>
         </li>
       </ul>
-      <router-link class="btn btn--olive" :to="`/models/${r.id}/new-version`">{{ t('detail.newVersion') }}</router-link>
+      <router-link
+        v-if="r.schema_version === 'v0'"
+        class="btn btn--primary"
+        :to="`/models/${r.id}/new-version`"
+      >{{ t('myModels.upgrade') }}</router-link>
+      <router-link
+        v-else
+        class="btn btn--olive"
+        :to="`/models/${r.id}/new-version`"
+      >{{ t('detail.newVersion') }}</router-link>
     </div>
   </div>
 </template>

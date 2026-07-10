@@ -76,19 +76,24 @@ def _parse_dcat_metadata(metadata_el: ET.Element) -> dict:
 
 
 async def fetch_ocr_models():
-    """Harvests every parseable v1 record from the ocr_models community.
+    """Harvests every parseable record from the ocr_models community, both
+    current v1 (YAML front matter in README.md) and legacy v0 (a standalone
+    metadata.json, only ever kraken text-recognition models) -- converting
+    the latter to the v1 metadata shape on the way out (see
+    card.v0_to_v1_metadata) so the rest of the pipeline stays v1-only. A
+    record carrying both files is treated as v1.
 
-    Yields dicts (doi, concept_doi, metadata, body_html, files,
-    published_at) one at a time as they're parsed, rather than collecting
-    the whole community into memory before returning: OAI-PMH resumption
-    tokens are time-limited, and fetching each record's README.md is a
-    separate, sometimes slow, round trip -- with hundreds of records across
-    several pages, that pagination can genuinely take long enough for a
-    later page's token to expire. Yielding incrementally lets the caller
-    (sync_ocr_models) commit as it goes, so a later page failing doesn't
-    throw away everything already harvested. Records that fail to parse
-    (non-v1, malformed front matter, no README.md) are skipped rather than
-    aborting the whole harvest.
+    Yields dicts (doi, concept_doi, metadata, body_html, schema_version,
+    files, published_at) one at a time as they're parsed, rather than
+    collecting the whole community into memory before returning: OAI-PMH
+    resumption tokens are time-limited, and fetching each record's
+    README.md/metadata.json is a separate, sometimes slow, round trip --
+    with hundreds of records across several pages, that pagination can
+    genuinely take long enough for a later page's token to expire. Yielding
+    incrementally lets the caller (sync_ocr_models) commit as it goes, so a
+    later page failing doesn't throw away everything already harvested.
+    Records that fail to parse (malformed front matter, invalid v0 JSON,
+    neither metadata file) are skipped rather than aborting the whole harvest.
     """
     params = {"verb": "ListRecords", "metadataPrefix": "dcat", "set": _OAI_SET}
 
@@ -120,13 +125,26 @@ async def fetch_ocr_models():
                 readme_url = next(
                     (f["url"] for f in dcat["distribution"] if f["url"].endswith("README.md")), None
                 )
-                if not dcat["doi"] or not readme_url:
+                legacy_url = next(
+                    (f["url"] for f in dcat["distribution"] if f["url"].endswith("metadata.json")), None
+                )
+                if not dcat["doi"] or not (readme_url or legacy_url):
                     continue
 
                 try:
-                    readme_resp = await client.get(readme_url)
-                    readme_resp.raise_for_status()
-                    parsed = card.parse_card(readme_resp.text)
+                    if readme_url:
+                        resp = await client.get(readme_url)
+                        resp.raise_for_status()
+                        parsed = card.parse_card(resp.text)
+                        metadata, body_md = parsed.metadata, parsed.body_md
+                        schema_version, card_filename = "v1", "README.md"
+                    else:
+                        resp = await client.get(legacy_url)
+                        resp.raise_for_status()
+                        v0_metadata = resp.json()
+                        card.validate_v0_metadata(v0_metadata)
+                        metadata, body_md = card.v0_to_v1_metadata(v0_metadata)
+                        schema_version, card_filename = "v0", "metadata.json"
                 except Exception as exc:
                     logger.info("Skipping unparseable harvested record %s: %s", dcat["doi"], exc)
                     continue
@@ -135,12 +153,13 @@ async def fetch_ocr_models():
                 yield {
                     "doi": dcat["doi"],
                     "concept_doi": dcat["concept_doi"] or dcat["doi"],
-                    "metadata": parsed.metadata,
-                    "body_html": parsed.body_md,
+                    "metadata": metadata,
+                    "body_html": body_md,
+                    "schema_version": schema_version,
                     "files": [
                         {"filename": f["url"].rsplit("/", 1)[-1], "size": f["size"]}
                         for f in dcat["distribution"]
-                        if not f["url"].endswith("README.md")
+                        if not f["url"].endswith(card_filename)
                     ],
                     "published_at": datestamp_el.text if datestamp_el is not None else None,
                 }
@@ -220,6 +239,7 @@ async def sync_ocr_models(db: AsyncSession) -> dict:
 
         version.card_yaml = card.build_card_text(metadata, item["body_html"])
         version.card_body_md = item["body_html"]
+        version.schema_version = item["schema_version"]
         version.files = item["files"]
         version.status = "published"
         version.zenodo_env = "production"

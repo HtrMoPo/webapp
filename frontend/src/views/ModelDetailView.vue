@@ -40,6 +40,7 @@ const isOwner = computed(() => record.value?.is_owner ?? false)
     </div>
     <div class="page-content">
       <div class="chips" style="margin-bottom: 20px">
+        <span class="chip chip--amber" v-if="record.schema_version === 'v0'"><span class="chip__v">{{ t('detail.legacyBadge') }}</span></span>
         <span class="chip chip--rose" v-for="l in record.language" :key="l"><span class="chip__k">lang</span><span class="chip__v">{{ l }}</span></span>
         <span class="chip chip--rose" v-for="s in record.script" :key="s"><span class="chip__k">script</span><span class="chip__v">{{ s }}</span></span>
         <span class="chip chip--green"><span class="chip__k">license</span><span class="chip__v">{{ record.license }}</span></span>
@@ -48,7 +49,12 @@ const isOwner = computed(() => record.value?.is_owner ?? false)
       <div class="prose" v-html="bodyHtml"></div>
 
       <div class="form-section" v-if="isOwner">
-        <router-link class="btn btn--olive" :to="`/models/${record.id}/new-version`">{{ t('detail.newVersion') }}</router-link>
+        <p class="form-help" v-if="record.schema_version === 'v0'" style="margin-top:0">{{ t('detail.legacyOwnerNote') }}</p>
+        <router-link
+          class="btn"
+          :class="record.schema_version === 'v0' ? 'btn--primary' : 'btn--olive'"
+          :to="`/models/${record.id}/new-version`"
+        >{{ record.schema_version === 'v0' ? t('myModels.upgrade') : t('detail.newVersion') }}</router-link>
       </div>
 
       <div class="form-section">

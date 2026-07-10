@@ -114,9 +114,14 @@ has been reviewed.
 In addition to models published through this app, the catalog also mirrors the public
 `ocr_models` Zenodo community (the same one HTRMoPo itself reads from), harvested via
 OAI-PMH — always against real production Zenodo, regardless of this deployment's
-`ZENODO_ENV`, since that community only meaningfully exists there. Only v1-schema
-records (Markdown model card + `README.md`) are picked up; older v0-format records
-(`metadata.json`) are skipped, matching what this app can actually display.
+`ZENODO_ENV`, since that community only meaningfully exists there. Both current
+v1-schema records (Markdown model card + `README.md`) and legacy v0-schema records (a
+standalone `metadata.json`, only ever kraken text-recognition models) are picked up; v0
+metadata is converted to the v1 shape on read (see `card.v0_to_v1_metadata`) and its
+version is tagged `schema_version = "v0"`. This app never *writes* v0 metadata —
+publishing is always v1 — so a legacy record's owner can upgrade it to the current
+schema by publishing a new (v1) version of it: see "My Models", where their own legacy
+records surface with an **Upgrade to current schema** action (`app/claim.py`).
 
 This sync runs:
 - **After every publish** through this app (fire-and-forget, doesn't block the
@@ -126,7 +131,7 @@ This sync runs:
   `ENABLE_NIGHTLY_HARVEST=false`.
 - **On demand** via the "Refresh from Zenodo" button on the catalog page, or
   `POST /api/models/harvest` — **admin-only** (see below), since it fans out to an
-  external OAI-PMH harvest plus a README.md fetch per record.
+  external OAI-PMH harvest plus a metadata file (`README.md`/`metadata.json`) fetch per record.
 
 Harvested records never overwrite ones actually owned by a user through this app (tracked
 via `model_records.source`, `"app"` vs `"harvested"`) — harvesting only fills in/refreshes

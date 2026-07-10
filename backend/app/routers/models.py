@@ -61,6 +61,10 @@ def _record_summary(record: ModelRecord, versions: list[ModelVersion] | None = N
         "script": record.script,
         "license": record.license,
         "version_count": len(versions),
+        # Schema of the current (latest visible) version -- "v0" flags a
+        # legacy record whose owner can upgrade it to v1 (see app.claim and
+        # the "publish a new version" flow).
+        "schema_version": latest.schema_version if latest else None,
         "latest_version": _version_summary(latest) if latest else None,
     }
 
@@ -70,6 +74,7 @@ def _version_summary(version: ModelVersion) -> dict:
         "id": version.id,
         "doi": version.version_doi,
         "status": version.status,
+        "schema_version": version.schema_version,
         "zenodo_env": version.zenodo_env,
         "files": version.files,
         "published_at": version.published_at.isoformat() if version.published_at else None,
