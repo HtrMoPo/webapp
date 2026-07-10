@@ -120,14 +120,14 @@ function prefill(version) {
   const loadedAuthors = (metadata.authors ?? []).map((a) => ({
     name: a.name ?? '',
     affiliation: a.affiliation ?? '',
-    orcid: a.orcid ?? '',
+    orcid: bareOrcid(a.orcid ?? ''),
   }))
   authors.splice(0, authors.length, ...(loadedAuthors.length ? loadedAuthors : [{ name: '', affiliation: '', orcid: '' }]))
 
   const loadedContributors = (metadata.contributors ?? []).map((a) => ({
     name: a.name ?? '',
     affiliation: a.affiliation ?? '',
-    orcid: a.orcid ?? '',
+    orcid: bareOrcid(a.orcid ?? ''),
   }))
   contributors.splice(0, contributors.length, ...loadedContributors)
 
@@ -266,6 +266,16 @@ async function removeLocalFile(i) {
 
 function splitLines(s) {
   return s.split('\n').map((l) => l.trim()).filter(Boolean)
+}
+
+// The form only ever shows/asks for the bare ORCID id -- typing the
+// "https://orcid.org/" prefix by hand is cumbersome. The backend appends it
+// (see card._normalize_orcid) when the card is actually saved, so an
+// existing full-URI value (loaded from a card written before this, or one
+// that came from app.harvest/app.claim) is stripped back down to just the
+// id here for editing.
+function bareOrcid(value) {
+  return value.match(/(\d{4}-\d{4}-\d{4}-\d{3}[\dX])/)?.[1] ?? value
 }
 
 function cleanPeople(list) {
@@ -480,7 +490,7 @@ async function publish() {
           </div>
           <div class="form-group">
             <label class="form-label">{{ t('form.authorOrcid') }}</label>
-            <input class="form-input" v-model="a.orcid" placeholder="https://orcid.org/0000-0000-0000-0000" />
+            <input class="form-input" v-model="a.orcid" placeholder="0000-0000-0000-0000" />
           </div>
           <button class="btn btn--ghost author-row__remove" @click="removeAuthor(i)" v-if="authors.length > 1">{{ t('form.removeAuthor') }}</button>
         </div>
@@ -503,7 +513,7 @@ async function publish() {
           </div>
           <div class="form-group">
             <label class="form-label">{{ t('form.authorOrcid') }}</label>
-            <input class="form-input" v-model="c.orcid" placeholder="https://orcid.org/0000-0000-0000-0000" />
+            <input class="form-input" v-model="c.orcid" placeholder="0000-0000-0000-0000" />
           </div>
           <button class="btn btn--ghost author-row__remove" @click="removeContributor(i)">{{ t('common.remove') }}</button>
         </div>

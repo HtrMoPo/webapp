@@ -20,6 +20,8 @@ from app import vocab
 _YAML_DELIM = r"(?:---|\+\+\+)"
 _YAML_REGEX = re.compile(r"^\s*" + _YAML_DELIM + r"(.*?)" + _YAML_DELIM + r"\s*(.+)$", re.S | re.M)
 
+_ORCID_ID_RE = re.compile(r"(\d{4}-\d{4}-\d{4}-\d{3}[\dX])")
+
 with resources.files("app.schema").joinpath("v1.metadata.schema.json").open() as fp:
     V1_SCHEMA = json.load(fp)
 
@@ -91,6 +93,29 @@ def render_body_html(body_md: str) -> str:
     return md.markdown(body_md)
 
 
+def _normalize_orcid(value: str) -> str:
+    """The v1 schema requires authors[].orcid as a full URI (format: uri),
+    but typing that prefix by hand is cumbersome -- the form only asks for
+    the bare id (e.g. "0000-0002-1825-0097") and this turns it into
+    "https://orcid.org/0000-0002-1825-0097" here instead. Already-full
+    values (e.g. from app.harvest/app.claim, which get them straight from
+    Zenodo in bare form and build the URI themselves) pass through as-is."""
+    match = _ORCID_ID_RE.search(value)
+    return f"https://orcid.org/{match.group(1)}" if match else value
+
+
+def _normalize_people(metadata: dict) -> dict:
+    metadata = dict(metadata)
+    for key in ("authors", "contributors"):
+        people = metadata.get(key)
+        if not people:
+            continue
+        metadata[key] = [
+            {**p, "orcid": _normalize_orcid(p["orcid"])} if p.get("orcid") else p for p in people
+        ]
+    return metadata
+
+
 def build_card_text(metadata: dict, body_md: str) -> str:
-    header = yaml.dump(metadata, sort_keys=False, allow_unicode=True)
+    header = yaml.dump(_normalize_people(metadata), sort_keys=False, allow_unicode=True)
     return f"---\n{header}---\n{body_md}"
