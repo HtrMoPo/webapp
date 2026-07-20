@@ -163,6 +163,7 @@
     "add": "Ajouter",
     "remove": "Retirer",
     "language_en": "Anglais",
-    "language_fr": "Français"
+    "language_fr": "Français",
+    "language": "Langue"
   }
 }

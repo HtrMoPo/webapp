@@ -2,7 +2,7 @@
 import { onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuth, refreshAuth } from './composables/useAuth'
-import { setLocale } from './i18n'
+import { setLocale, SUPPORTED_LOCALES } from './i18n'
 import { api } from './api/client'
 
 const { t, locale } = useI18n()
@@ -13,9 +13,7 @@ const baseUrl = import.meta.env.BASE_URL
 
 onMounted(refreshAuth)
 
-function toggleLocale() {
-  setLocale(locale.value === 'en' ? 'fr' : 'en')
-}
+const localeNames = { en: 'English', fr: 'Français', de: 'Deutsch', it: 'Italiano', es: 'Español' }
 
 async function logout() {
   await api.logout()
@@ -32,7 +30,9 @@ async function logout() {
         <router-link v-if="auth.authenticated" to="/mine">{{ t('nav.myModels') }}</router-link>
         <router-link v-if="auth.authenticated" to="/upload">{{ t('nav.upload') }}</router-link>
       </nav>
-      <button class="lang-toggle" @click="toggleLocale">{{ locale === 'en' ? 'FR' : 'EN' }}</button>
+      <select class="lang-toggle" :value="locale" @change="setLocale($event.target.value)" :aria-label="t('common.language')">
+        <option v-for="code in SUPPORTED_LOCALES" :key="code" :value="code">{{ localeNames[code] }}</option>
+      </select>
       <a v-if="!auth.authenticated" class="btn btn--olive" :href="api.loginUrl()">{{ t('nav.login') }}</a>
       <button v-else class="btn btn--ghost" @click="logout">{{ t('nav.logout') }}</button>
     </div>

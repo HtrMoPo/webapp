@@ -1,0 +1,169 @@
+{
+  "nav": {
+    "catalog": "Katalog",
+    "myModels": "Meine Modelle",
+    "upload": "Modell hochladen",
+    "login": "Mit Zenodo verbinden",
+    "logout": "Abmelden"
+  },
+  "home": {
+    "title": "Dokumentieren & veröffentlichen von <span class=\"accent\">Kraken</span>-Modellen",
+    "subtitle": "Beschreiben Sie Ihr HTR/OCR-Modell mit dem HTRMoPo-Metadatenschema, veröffentlichen Sie es mit einer zitierfähigen DOI auf Zenodo und behalten Sie alle Versionen an einem Ort im Blick.",
+    "browse": "Katalog durchsuchen",
+    "uploadCta": "Modell hochladen",
+    "hosting": {
+      "title": "Hosting",
+      "text": "Diese Anwendung wird von Inria Paris gehostet und betreut."
+    },
+    "funding": {
+      "title": "Finanzierung",
+      "text": "Dieses Projekt wird im Rahmen von <a href=\"https://atrium-research.eu/\">ATRIUM</a> entwickelt. ATRIUM wird von der Europäischen Union im Rahmen der Finanzhilfevereinbarung Nr. 101132163 finanziert. Die geäußerten Ansichten und Meinungen sind jedoch die der Autor(en) und spiegeln nicht zwangsläufig die der Europäischen Union wider. Weder die Europäische Union noch die Bewilligungsbehörde können dafür verantwortlich gemacht werden."
+    },
+    "links": {
+      "title": "Links",
+      "repo": "Quellcode auf GitHub",
+      "htrmopo": "Das HTRMoPo-Schema"
+    }
+  },
+  "catalog": {
+    "title": "Modellkatalog",
+    "subtitle": "Über diese App veröffentlichte Kraken-Modelle mit vollständigen HTRMoPo-Metadaten und Versionsverlauf.",
+    "search": "Modelle durchsuchen…",
+    "empty": "Keine Modelle entsprechen aktuell Ihren Filtern.",
+    "resultCount": "{count} Modell | {count} Modelle",
+    "facets": {
+      "language": "Sprache",
+      "script": "Schrift",
+      "modelType": "Modelltyp",
+      "license": "Lizenz"
+    },
+    "viewRecord": "Vollständigen Eintrag ansehen",
+    "refresh": "Von Zenodo aktualisieren",
+    "refreshDatasets": "HTR-United-Datensätze aktualisieren",
+    "yoursSandboxOnly": "Ihres — nur Sandbox, nicht öffentlich",
+    "legacy": "alt (v0)",
+    "downloads": "{count} Download | {count} Downloads",
+    "sort": {
+      "label": "Sortieren nach",
+      "alphabetical": "Alphabetisch",
+      "recency": "Neueste",
+      "downloads": "Meiste Downloads"
+    }
+  },
+  "myModels": {
+    "sync": "Von Zenodo synchronisieren",
+    "placeholderBadge": "noch keine Metadaten — neue Version veröffentlichen, um sie hinzuzufügen",
+    "legacyBadge": "altes v0-Schema",
+    "upgrade": "Auf aktuelles Schema aktualisieren",
+    "upgradeHelp": "Dieses Modell verwendet das alte v0-Metadatenformat. Veröffentlichen Sie eine neue Version, um es auf das aktuelle HTRMoPo-Schema zu aktualisieren."
+  },
+  "detail": {
+    "versions": "Versionen",
+    "latest": "Neueste",
+    "published": "Veröffentlicht",
+    "viewOnZenodo": "Auf Zenodo ansehen",
+    "newVersion": "Neue Version veröffentlichen",
+    "legacyBadge": "altes v0-Schema",
+    "legacyOwnerNote": "Dieses Modell verwendet das alte v0-Metadatenformat. Veröffentlichen Sie eine neue Version, um es auf das aktuelle HTRMoPo-Schema zu aktualisieren.",
+    "metrics": "Metriken",
+    "datasets": "Trainingsdatensätze",
+    "baseModel": "Basismodell(e)",
+    "citation": "Zitation",
+    "authors": "Autoren",
+    "files": "Dateien",
+    "downloadKraken": "Mit Kraken herunterladen",
+    "copy": "Kopieren",
+    "copied": "Kopiert"
+  },
+  "form": {
+    "titleNew": "Neues Modell dokumentieren",
+    "titleVersion": "Neue Version von {title} veröffentlichen",
+    "steps": {
+      "title": "Schritte",
+      "one": "Modellkarte ausfüllen",
+      "two": "Modelldatei(en) anhängen",
+      "three": "Auf Zenodo veröffentlichen"
+    },
+    "progress": {
+      "savingDraft": "Entwurf wird gespeichert…",
+      "uploadingFiles": "Dateien werden hochgeladen…",
+      "publishing": "Wird auf Zenodo veröffentlicht…",
+      "creatingDeposition": "Neuer Eintrag wird auf Zenodo erstellt…",
+      "resolvingPreviousVersion": "Vorherige Version wird ermittelt…",
+      "uploadingFile": "{detail} wird hochgeladen…",
+      "settingMetadata": "Metadaten werden an Zenodo gesendet…",
+      "publishingToZenodo": "Veröffentlichung auf Zenodo wird abgeschlossen…"
+    },
+    "section": {
+      "identity": "Modellidentität",
+      "authors": "Autoren",
+      "collaborators": "Mitwirkende",
+      "classification": "Klassifikation",
+      "training": "Trainingsdaten & Herkunft",
+      "metrics": "Metriken",
+      "description": "Beschreibung",
+      "files": "Modelldateien"
+    },
+    "summary": "Kurzbeschreibung (eine Zeile)",
+    "summaryHelp": "Ein kurzer, aussagekräftiger Titel für das Modell.",
+    "license": "Lizenz",
+    "softwareName": "Software",
+    "softwareHint": "Software-Hinweise (z. B. Version)",
+    "language": "Sprachen",
+    "script": "Schriften",
+    "modelType": "Modelltyp",
+    "keywords": "Schlagwörter",
+    "datasets": "Trainingsdatensätze",
+    "datasetsSearch": "HTR-United-Katalog durchsuchen…",
+    "datasetsHelp": "Wählen Sie einen Datensatz aus dem HTR-United-Katalog oder geben Sie unten eine externe URL ein.",
+    "baseModel": "Basismodell(e)",
+    "baseModelSearch": "Modelle in diesem Katalog durchsuchen…",
+    "baseModelHelp": "Wählen Sie eine Basis für das Fine-Tuning aus bereits vorhandenen Modellen in diesem Katalog, oder geben Sie unten eine externe URL ein.",
+    "addCustomUrl": "Externe URL hinzufügen",
+    "citation": "Zitations-URL",
+    "citationHelp": "Link zur Publikation, die dieses Modell beschreibt, falls vorhanden (nicht die Modellkarte selbst).",
+    "authorName": "Name",
+    "authorAffiliation": "Zugehörigkeit",
+    "authorOrcid": "ORCID",
+    "addAuthor": "Autor hinzufügen",
+    "removeAuthor": "Entfernen",
+    "collaboratorsHelp": "Weitere Autoren/Mitwirkende. Nicht Teil der HTRMoPo-Katalogmetadaten, wird aber bei Angabe an Zenodos eigenes Mitwirkenden-Feld gesendet.",
+    "addCollaborator": "Mitwirkende(n) hinzufügen",
+    "metricName": "Metrik",
+    "metricValue": "Wert",
+    "metricsHelp": "Gängige Metriken: CER (Zeichenfehlerrate), WER (Wortfehlerrate), mAP (mittlere durchschnittliche Präzision), Genauigkeit, F1-Score. Verwenden Sie, was für die Aufgabe dieses Modells relevant ist.",
+    "addMetric": "Metrik hinzufügen",
+    "removeMetric": "Entfernen",
+    "bodyMd": "Beschreibung der Modellkarte",
+    "bodyMdHelp": "Die ausführliche Beschreibung, die auf der Modellseite und als Zenodo-Beschreibung angezeigt wird.",
+    "dropFiles": "Dateien hierher ziehen oder klicken zum Durchsuchen",
+    "removeFile": "Entfernen",
+    "versionLabel": "Version",
+    "versionLabelHelp": "Eine frei wählbare Versionsbezeichnung (z. B. „1.6.0“) für diese Veröffentlichung. Nicht Teil der HTRMoPo-Katalogmetadaten, wird aber bei Angabe an Zenodos eigenes Versionsfeld gesendet.",
+    "private": "Aufnahme in die Community beantragen (deaktivieren für einen privaten/Test-Upload)",
+    "saveDraft": "Entwurf speichern",
+    "publish": "Auf Zenodo veröffentlichen",
+    "publishConfirm": "Dies veröffentlicht einen unveränderlichen, zitierfähigen Eintrag auf {env}. Fortfahren?",
+    "discard": "Entwurf verwerfen",
+    "validationErrors": "Bitte beheben Sie Folgendes vor der Veröffentlichung:",
+    "noFilesError": "Fügen Sie mindestens eine Modelldatei an, bevor Sie veröffentlichen.",
+    "publishSuccess": "Veröffentlicht! DOI: {doi}",
+    "zenodoMetadataNudge": "Diese App sendet nur die HTRMoPo-Kartenfelder an Zenodo. Gehen Sie zum Eintrag auf Zenodo, um alles andere auszufüllen, was dort unterstützt wird, aber nicht in diesem Formular enthalten ist — insbesondere Förder-/Zuschussinformationen.",
+    "continueToModel": "Zur Modellseite"
+  },
+  "auth": {
+    "sandboxBanner": "Dieses Deployment spricht mit der Zenodo Sandbox (sandbox.zenodo.org) — nur Testdaten, nicht dauerhaft.",
+    "loginPrompt": "Verbinden Sie Ihr Zenodo-Konto, um Modelle hochzuladen oder zu versionieren.",
+    "notAuthenticated": "Sie müssen sich zuerst mit Zenodo verbinden."
+  },
+  "common": {
+    "loading": "Wird geladen…",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "add": "Hinzufügen",
+    "remove": "Entfernen",
+    "language_en": "Englisch",
+    "language_fr": "Französisch",
+    "language": "Sprache"
+  }
+}

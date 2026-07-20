@@ -7,10 +7,15 @@ import { useAuth } from '../composables/useAuth'
 import { formatAuthorList } from '../utils/authors'
 import { useIsoNames } from '../utils/iso'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { languageName, scriptName } = useIsoNames()
 const auth = useAuth()
 const baseUrl = import.meta.env.BASE_URL
+
+function formatReleaseDate(iso) {
+  if (!iso) return null
+  return new Date(iso).toLocaleDateString(locale.value, { year: 'numeric', month: 'short' })
+}
 
 const CHIP_CAP = 4
 function capChips(values) {
@@ -216,6 +221,12 @@ function formatCount(n) {
               >
                 <span class="chip__k"><svg><use :href="`${baseUrl}icons.svg#download-icon`" /></svg></span>
                 <span class="chip__v">{{ formatCount(m.downloads) }}</span>
+              </span>
+            </div>
+            <div class="chips" v-if="formatReleaseDate(m.latest_version?.published_at)">
+              <span class="chip" :title="m.latest_version.published_at">
+                <span class="chip__k"><svg><use :href="`${baseUrl}icons.svg#calendar-icon`" /></svg></span>
+                <span class="chip__v">{{ formatReleaseDate(m.latest_version.published_at) }}</span>
               </span>
             </div>
             <p class="card__authors" v-if="m.authorLine">{{ m.authorLine }}</p>
