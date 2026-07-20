@@ -60,6 +60,7 @@ def _record_summary(record: ModelRecord, versions: list[ModelVersion] | None = N
         "language": record.language,
         "script": record.script,
         "license": record.license,
+        "downloads": record.downloads,
         "version_count": len(versions),
         # Schema of the current (latest visible) version -- "v0" flags a
         # legacy record whose owner can upgrade it to v1 (see app.claim and
@@ -442,4 +443,6 @@ async def trigger_harvest(user: User = Depends(get_current_user), db: AsyncSessi
     already covers regular users' needs)."""
     if not user.is_admin:
         raise HTTPException(status_code=403, detail="admin_required")
-    return await harvest.sync_ocr_models(db)
+    summary = await harvest.sync_ocr_models(db)
+    summary["download_stats"] = await harvest.refresh_download_stats(db)
+    return summary

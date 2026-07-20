@@ -20,10 +20,12 @@ from urllib.parse import urlsplit
 import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app import card
 from app.models import ModelRecord, ModelVersion
 from app.slugs import slugify, unique_slug
+from app.zenodo_client import doi_to_recid
 
 logger = logging.getLogger(__name__)
 
@@ -248,3 +250,51 @@ async def sync_ocr_models(db: AsyncSession) -> dict:
         await db.commit()
 
     return {"seen": seen, "created": created, "updated": updated, "skipped_owned": skipped_owned}
+
+
+def _zenodo_base_url(zenodo_env: str | None) -> str:
+    return "https://zenodo.org" if zenodo_env == "production" else "https://sandbox.zenodo.org"
+
+
+async def refresh_download_stats(db: AsyncSession) -> dict:
+    """Best-effort download/view stats refresh via Zenodo's public records
+    API (GET /api/records/<id>, no auth needed) -- covers every record with
+    at least one published version, regardless of source (harvested or
+    published through this app), since Zenodo aggregates `stats.downloads`
+    across every version of a concept no matter which version id is queried.
+
+    Each record is refreshed independently and committed on its own, so one
+    slow/failing lookup (a deleted upstream record, a network blip) doesn't
+    lose progress on the rest -- matching sync_ocr_models' incremental-commit
+    approach above.
+    """
+    result = await db.execute(select(ModelRecord).options(selectinload(ModelRecord.versions)))
+    records = result.scalars().all()
+
+    updated = failed = 0
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        for record in records:
+            published = [v for v in record.versions if v.status == "published" and not v.is_placeholder and v.version_doi]
+            if not published:
+                continue
+            version = max(published, key=lambda v: v.published_at or dt.datetime.min.replace(tzinfo=dt.timezone.utc))
+            recid = doi_to_recid(version.version_doi)
+            if not recid:
+                continue
+
+            base = _zenodo_base_url(version.zenodo_env)
+            try:
+                resp = await client.get(f"{base}/api/records/{recid}")
+                resp.raise_for_status()
+                stats = resp.json().get("stats") or {}
+            except Exception as exc:
+                logger.info("Failed to refresh download stats for record %s: %s", record.slug, exc)
+                failed += 1
+                continue
+
+            record.downloads = stats.get("downloads")
+            record.views = stats.get("views")
+            await db.commit()
+            updated += 1
+
+    return {"updated": updated, "failed": failed}

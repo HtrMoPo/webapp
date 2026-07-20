@@ -41,7 +41,14 @@
     "refresh": "Refresh from Zenodo",
     "refreshDatasets": "Refresh HTR-United datasets",
     "yoursSandboxOnly": "yours — sandbox only, not public",
-    "legacy": "legacy v0"
+    "legacy": "legacy v0",
+    "downloads": "{count} downloads",
+    "sort": {
+      "label": "Sort by",
+      "alphabetical": "Alphabetical",
+      "recency": "Newest",
+      "downloads": "Most downloaded"
+    }
   },
   "myModels": {
     "sync": "Sync from Zenodo",

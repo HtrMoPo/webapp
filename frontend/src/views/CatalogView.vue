@@ -24,6 +24,7 @@ const refreshing = ref(false)
 const refreshingDatasets = ref(false)
 const search = ref('')
 const selected = ref({ language: new Set(), script: new Set(), model_type: new Set(), license: new Set() })
+const sortBy = ref('alphabetical')
 
 function cardAuthorLine(model) {
   const yaml = model.latest_version?.card_yaml
@@ -111,6 +112,19 @@ const filtered = computed(() => {
     return true
   })
 })
+
+const SORTERS = {
+  alphabetical: (a, b) => a.title.localeCompare(b.title),
+  recency: (a, b) => new Date(b.latest_version?.published_at || 0) - new Date(a.latest_version?.published_at || 0),
+  downloads: (a, b) => (b.downloads || 0) - (a.downloads || 0),
+}
+const sorted = computed(() => [...filtered.value].sort(SORTERS[sortBy.value]))
+
+function formatCount(n) {
+  if (n == null) return null
+  if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k`
+  return `${n}`
+}
 </script>
 
 <template>
@@ -148,6 +162,14 @@ const filtered = computed(() => {
       <div class="toolbar">
         <div class="toolbar__count">{{ t('catalog.resultCount', { count: filtered.length }, filtered.length) }}</div>
         <div class="toolbar__spacer"></div>
+        <div class="toolbar__ctrl">
+          <label for="sortBy">{{ t('catalog.sort.label') }}</label>
+          <select id="sortBy" class="select" v-model="sortBy">
+            <option value="alphabetical">{{ t('catalog.sort.alphabetical') }}</option>
+            <option value="recency">{{ t('catalog.sort.recency') }}</option>
+            <option value="downloads">{{ t('catalog.sort.downloads') }}</option>
+          </select>
+        </div>
         <button
           v-if="auth.isAdmin"
           class="btn btn--ghost"
@@ -169,7 +191,7 @@ const filtered = computed(() => {
       <div v-if="loading" class="loading"><div class="spinner"></div>{{ t('common.loading') }}</div>
       <div v-else-if="!filtered.length" class="empty"><p>{{ t('catalog.empty') }}</p></div>
       <div v-else class="grid">
-        <div class="card" v-for="m in filtered" :key="m.slug">
+        <div class="card" v-for="m in sorted" :key="m.slug">
           <div class="card__band">
             <div class="card__title">{{ m.title }}</div>
           </div>
@@ -191,6 +213,7 @@ const filtered = computed(() => {
                 <svg><use :href="`${baseUrl}icons.svg#external-link-icon`" /></svg>
                 {{ t('detail.viewOnZenodo') }}
               </a>
+              <span class="card__downloads" v-if="formatCount(m.downloads)">{{ t('catalog.downloads', { count: formatCount(m.downloads) }) }}</span>
             </div>
           </div>
         </div>

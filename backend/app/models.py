@@ -92,6 +92,12 @@ class ModelRecord(Base):
     script: Mapped[list] = mapped_column(JSON, default=list)
     license: Mapped[str] = mapped_column(String, default="")
 
+    # Zenodo's stats.downloads/views for the record's latest public version,
+    # refreshed best-effort alongside the catalog harvest (see
+    # app.harvest.refresh_download_stats). Null until the first refresh runs.
+    downloads: Mapped[int | None] = mapped_column(nullable=True)
+    views: Mapped[int | None] = mapped_column(nullable=True)
+
     created_at: Mapped[dt.datetime] = mapped_column(default=_now)
     updated_at: Mapped[dt.datetime] = mapped_column(default=_now, onupdate=_now)
 

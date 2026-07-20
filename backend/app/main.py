@@ -67,6 +67,12 @@ async def _run_catalog_crawl(label: str) -> None:
         logger.info("%s HTR-United catalog refresh: %s", label, summary)
     except Exception:
         logger.exception("%s HTR-United catalog refresh failed", label)
+    try:
+        async with async_session() as session:
+            summary = await harvest.refresh_download_stats(session)
+            logger.info("%s download stats refresh: %s", label, summary)
+    except Exception:
+        logger.exception("%s download stats refresh failed", label)
 
 
 async def _run_claim_sync(label: str) -> None:
