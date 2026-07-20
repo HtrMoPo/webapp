@@ -1,10 +1,14 @@
 <script setup>
+import { load as loadYaml } from 'js-yaml'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { api } from '../api/client'
 import { useAuth } from '../composables/useAuth'
+import { formatAuthorList } from '../utils/authors'
+import { useIsoNames } from '../utils/iso'
 
 const { t } = useI18n()
+const { languageName, scriptName } = useIsoNames()
 const auth = useAuth()
 
 const models = ref([])
@@ -14,8 +18,22 @@ const refreshingDatasets = ref(false)
 const search = ref('')
 const selected = ref({ language: new Set(), script: new Set(), model_type: new Set(), license: new Set() })
 
+function cardAuthorLine(model) {
+  const yaml = model.latest_version?.card_yaml
+  const match = yaml?.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/)
+  if (!match) return ''
+  const metadata = loadYaml(match[1]) || {}
+  return formatAuthorList(metadata.authors)
+}
+
+function zenodoUrl(doi) {
+  const recid = doi?.match(/zenodo\.(\d+)/)?.[1]
+  return recid ? `${auth.zenodoBaseUrl}/records/${recid}` : null
+}
+
 async function load() {
-  models.value = await api.listModels()
+  const listed = await api.listModels()
+  models.value = listed.map((m) => ({ ...m, authorLine: cardAuthorLine(m) }))
 }
 
 onMounted(async () => {
@@ -106,7 +124,7 @@ const filtered = computed(() => {
           <div class="facet__body">
             <label class="opt" :class="{ 'is-on': selected[field].has(value) }" v-for="[value, count] in values" :key="value">
               <span class="opt__box" @click="toggle(field, value)"></span>
-              <span class="opt__label" @click="toggle(field, value)">{{ value }}</span>
+              <span class="opt__label" @click="toggle(field, value)">{{ field === 'language' ? languageName(value) : field === 'script' ? scriptName(value) : value }}</span>
               <span class="opt__n">{{ count }}</span>
             </label>
           </div>
@@ -116,7 +134,7 @@ const filtered = computed(() => {
 
     <div class="results">
       <div class="toolbar">
-        <div class="toolbar__count">{{ filtered.length }}</div>
+        <div class="toolbar__count">{{ t('catalog.resultCount', { count: filtered.length }, filtered.length) }}</div>
         <div class="toolbar__spacer"></div>
         <button
           v-if="auth.isAdmin"
@@ -144,16 +162,18 @@ const filtered = computed(() => {
             <div class="card__title">{{ m.title }}</div>
           </div>
           <div class="card__body">
+            <p class="card__authors" v-if="m.authorLine">{{ m.authorLine }}</p>
             <p class="card__desc">{{ m.summary }}</p>
             <div class="chips">
               <span class="chip chip--slate" v-if="!m.is_public"><span class="chip__v">{{ t('catalog.yoursSandboxOnly') }}</span></span>
               <span class="chip chip--amber" v-if="m.schema_version === 'v0'"><span class="chip__v">{{ t('catalog.legacy') }}</span></span>
-              <span class="chip chip--rose" v-for="l in m.language" :key="l"><span class="chip__k">lang</span><span class="chip__v">{{ l }}</span></span>
-              <span class="chip chip--rose" v-for="s in m.script" :key="s"><span class="chip__k">script</span><span class="chip__v">{{ s }}</span></span>
+              <span class="chip chip--rose" v-for="l in m.language" :key="l"><span class="chip__k">lang</span><span class="chip__v">{{ languageName(l) }}</span></span>
+              <span class="chip chip--rose" v-for="s in m.script" :key="s"><span class="chip__k">script</span><span class="chip__v">{{ scriptName(s) }}</span></span>
               <span class="chip chip--green"><span class="chip__k">license</span><span class="chip__v">{{ m.license }}</span></span>
             </div>
             <div class="card__foot">
               <router-link class="btn btn--ghost" :to="`/models/${m.slug}`">{{ t('catalog.viewRecord') }}</router-link>
+              <a v-if="zenodoUrl(m.latest_version?.doi)" class="btn btn--ghost" :href="zenodoUrl(m.latest_version.doi)" target="_blank" rel="noopener">{{ t('detail.viewOnZenodo') }}</a>
             </div>
           </div>
         </div>
