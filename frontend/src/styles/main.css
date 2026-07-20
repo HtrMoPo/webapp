@@ -425,7 +425,7 @@ mark { background: #f3e6a8; color: inherit; border-radius: 3px; padding: 0 1px; 
 
 .card__foot { display: flex; align-items: center; gap: 9px; margin-top: 2px; }
 .card__downloads {
-  margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+  display: inline-flex; align-items: center; gap: 5px;
   font-size: 12px; font-weight: 600; color: var(--ink-2); font-variant-numeric: tabular-nums;
   background: var(--paper-2); border: 1px solid var(--line-2);
   border-radius: 20px; padding: 5px 10px 5px 8px;
