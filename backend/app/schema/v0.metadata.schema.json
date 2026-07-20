@@ -1,0 +1,99 @@
+ {
+   "definitions": {},
+   "$schema": "http://json-schema.org/draft-07/schema#",
+   "$id": "http://example.com/root.json",
+   "type": "object",
+   "title": "The Root Schema",
+   "required": [
+     "authors",
+     "summary",
+     "description",
+     "accuracy",
+     "license",
+     "script",
+     "name",
+     "graphemes"
+   ],
+   "properties": {
+     "authors": {
+       "$id": "#/properties/authors",
+       "type": "array",
+       "title": "Authors of the model",
+       "items": {
+         "$id": "#/properties/authors/items",
+         "type": "object",
+         "title": "items",
+         "required": [
+           "name",
+           "affiliation"
+         ],
+         "properties": {
+           "name": {
+             "$id": "#/properties/authors/items/properties/name",
+             "type": "string",
+             "title": "A single author's name"
+           },
+           "affiliation": {
+             "$id": "#/properties/authors/items/properties/affiliation",
+             "type": "string",
+             "title": "A single author's institutional affiliation"
+           }
+         }
+       }
+     },
+     "summary": {
+       "$id": "#/properties/summary",
+       "type": "string",
+       "title": "A one-line summary of the model"
+     },
+     "description": {
+       "$id": "#/properties/description",
+       "type": "string",
+       "title": "A long-form description of the model."
+     },
+     "accuracy": {
+       "$id": "#/properties/accuracy",
+       "type": "number",
+       "title": "Test accuracy of the model",
+       "default": 0.0,
+       "minimum": 0.0,
+       "maximum": 100.0
+     },
+     "license": {
+       "$id": "#/properties/license",
+       "type": "string",
+       "title": "License of the model",
+       "format": "okfn_license",
+       "controlled_vocabulary": "https://licenses.opendefinition.org/licenses/groups/all.json"
+     },
+     "script": {
+        "$id": "#/properties/script",
+        "type": "array",
+        "uniqueItems": true,
+        "minItems": 1,
+        "title": "ISO 15924 codes for scripts the model has been trained on.",
+        "controlled_vocabulary": "https://unicode.org/iso15924/iso15924.txt",
+        "items": {
+          "$id": "#/properties/script/items",
+          "type": "string",
+          "format": "iso-15924",
+          "pattern": "^[A-Z][a-z]{3}"
+        }
+     },
+     "name": {
+       "$id": "#/properties/name",
+       "type": "string",
+       "title": "Filename of the model"
+     },
+     "graphemes": {
+       "$id": "#/properties/graphemes",
+       "type": "array",
+       "title": "Code points recognizable by the model",
+       "minItems": 1,
+       "items": {
+         "$id": "#/properties/graphemes/items",
+         "type": "string"
+       }
+     }
+  }
+}
