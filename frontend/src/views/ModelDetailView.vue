@@ -40,6 +40,15 @@ const metadata = computed(() => {
 })
 const authors = computed(() => metadata.value.authors || [])
 const metrics = computed(() => Object.entries(metadata.value.metrics || {}))
+const krakenCommand = computed(() =>
+  metadata.value.software_name === 'kraken' && latest.value?.doi ? `kraken get ${latest.value.doi}` : null
+)
+const copied = ref(false)
+async function copyKrakenCommand() {
+  await navigator.clipboard.writeText(krakenCommand.value)
+  copied.value = true
+  setTimeout(() => { copied.value = false }, 1500)
+}
 
 function metricLabel(key) {
   return key.replace(/_/g, ' ')
@@ -126,6 +135,14 @@ const isOwner = computed(() => record.value?.is_owner ?? false)
           </div>
         </div>
 
+        <div class="meta-card" v-if="krakenCommand">
+          <h3>{{ t('detail.downloadKraken') }}</h3>
+          <div class="kraken-cmd">
+            <code>{{ krakenCommand }}</code>
+            <button type="button" class="kraken-cmd__copy" @click="copyKrakenCommand">{{ copied ? t('detail.copied') : t('detail.copy') }}</button>
+          </div>
+        </div>
+
         <div class="meta-card" v-if="latest?.files?.length">
           <h3>{{ t('detail.files') }}</h3>
           <ul class="file-list">
@@ -182,6 +199,21 @@ const isOwner = computed(() => record.value?.is_owner ?? false)
 .stat { display: flex; flex-direction: column; }
 .stat b { font-family: var(--mono); font-size: 16px; color: var(--ink); font-weight: 600; }
 .stat span { font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .03em; margin-top: 2px; }
+
+.kraken-cmd {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  background: #2c2e26; border-radius: 7px; padding: 8px 8px 8px 12px;
+}
+.kraken-cmd code {
+  font-family: var(--mono); font-size: 12px; color: #c7d0b0;
+  overflow-x: auto; white-space: nowrap; flex: 1;
+}
+.kraken-cmd__copy {
+  font-family: var(--sans); font-size: 11px; font-weight: 600; flex-shrink: 0;
+  background: rgba(255,255,255,.1); color: #e4e2d8; border: none;
+  border-radius: 5px; padding: 5px 9px; cursor: pointer;
+}
+.kraken-cmd__copy:hover { background: rgba(255,255,255,.18); }
 
 .file-list { list-style: none; margin: 0; padding: 0; }
 .file-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 5px 0; font-size: 13.5px; }

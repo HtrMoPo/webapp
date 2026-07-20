@@ -63,7 +63,10 @@
     "baseModel": "Modèle(s) de base",
     "citation": "Citation",
     "authors": "Auteurs",
-    "files": "Fichiers"
+    "files": "Fichiers",
+    "downloadKraken": "Télécharger avec Kraken",
+    "copy": "Copier",
+    "copied": "Copié"
   },
   "form": {
     "titleNew": "Documenter un nouveau modèle",

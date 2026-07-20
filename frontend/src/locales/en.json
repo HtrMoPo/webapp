@@ -63,7 +63,10 @@
     "baseModel": "Base model(s)",
     "citation": "Citation",
     "authors": "Authors",
-    "files": "Files"
+    "files": "Files",
+    "downloadKraken": "Download on Kraken",
+    "copy": "Copy",
+    "copied": "Copied"
   },
   "form": {
     "titleNew": "Document a new model",
