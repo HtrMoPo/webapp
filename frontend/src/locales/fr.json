@@ -52,6 +52,7 @@
   },
   "detail": {
     "versions": "Versions",
+    "latest": "Dernière",
     "published": "Publié",
     "viewOnZenodo": "Voir sur Zenodo",
     "newVersion": "Publier une nouvelle version",

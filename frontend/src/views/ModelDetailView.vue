@@ -8,7 +8,7 @@ import { useAuth } from '../composables/useAuth'
 import { useIsoNames } from '../utils/iso'
 
 const props = defineProps({ slug: { type: String, required: true } })
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { languageName, scriptName } = useIsoNames()
 const auth = useAuth()
 const baseUrl = import.meta.env.BASE_URL
@@ -21,7 +21,13 @@ onMounted(async () => {
   loading.value = false
 })
 
-const latest = computed(() => record.value?.versions?.[record.value.versions.length - 1])
+// The API doesn't guarantee `versions` is ordered by publish date (harvested
+// records can be inserted in a different order than they were published),
+// so sort explicitly rather than trusting array position.
+const sortedVersions = computed(() =>
+  [...(record.value?.versions || [])].sort((a, b) => new Date(b.published_at) - new Date(a.published_at))
+)
+const latest = computed(() => sortedVersions.value[0])
 // card_body_md is real Markdown (the WYSIWYG editor's HTML is converted to
 // Markdown before ever being sent/stored -- and harvested community records'
 // README bodies are real Markdown to begin with), so render it for display.
@@ -61,6 +67,11 @@ function formatSize(bytes) {
   return `${value.toFixed(i === 0 ? 0 : 1)} ${units[i]}`
 }
 
+function formatDate(iso) {
+  if (!iso) return ''
+  return new Date(iso).toLocaleDateString(locale.value, { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
 const isOwner = computed(() => record.value?.is_owner ?? false)
 </script>
 
@@ -70,94 +81,123 @@ const isOwner = computed(() => record.value?.is_owner ?? false)
     <div class="pagehead">
       <h1>{{ record.title }}</h1>
       <p>{{ record.summary }}</p>
-    </div>
-    <div class="page-content">
-      <div class="chips" style="margin-bottom: 20px">
+      <div class="chips">
         <span class="chip chip--amber" v-if="record.schema_version === 'v0'"><span class="chip__v">{{ t('detail.legacyBadge') }}</span></span>
         <span class="chip chip--rose" v-for="l in record.language" :key="l"><span class="chip__k">lang</span><span class="chip__v">{{ languageName(l) }}</span></span>
         <span class="chip chip--rose" v-for="s in record.script" :key="s"><span class="chip__k">script</span><span class="chip__v">{{ scriptName(s) }}</span></span>
         <span class="chip chip--green"><span class="chip__k">license</span><span class="chip__v">{{ record.license }}</span></span>
       </div>
+    </div>
 
-      <div class="form-section" v-if="authors.length">
-        <h2>{{ t('detail.authors') }}</h2>
-        <ul class="author-list">
-          <li v-for="(a, i) in authors" :key="i">
-            {{ a.name }}
-            <a v-if="a.orcid" :href="a.orcid" target="_blank" rel="noopener" :title="a.orcid">
-              <svg class="orcid-icon"><use :href="`${baseUrl}icons.svg#orcid-icon`" /></svg>
-            </a>
-          </li>
-        </ul>
+    <div class="detail-shell">
+      <div class="detail-main">
+        <div class="prose" v-html="bodyHtml"></div>
+
+        <div class="form-section" v-if="isOwner">
+          <p class="form-help" v-if="record.schema_version === 'v0'" style="margin-top:0">{{ t('detail.legacyOwnerNote') }}</p>
+          <router-link
+            class="btn"
+            :class="record.schema_version === 'v0' ? 'btn--primary' : 'btn--olive'"
+            :to="`/models/${record.id}/new-version`"
+          >{{ record.schema_version === 'v0' ? t('myModels.upgrade') : t('detail.newVersion') }}</router-link>
+        </div>
       </div>
 
-      <div class="form-section" v-if="metrics.length">
-        <h2>{{ t('detail.metrics') }}</h2>
-        <table class="metrics-table">
-          <thead>
-            <tr><th>{{ t('form.metricName') }}</th><th>{{ t('form.metricValue') }}</th></tr>
-          </thead>
-          <tbody>
-            <tr v-for="[key, value] in metrics" :key="key">
-              <td>{{ metricLabel(key) }}</td>
-              <td>{{ value }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <aside class="detail-aside">
+        <div class="meta-card" v-if="authors.length">
+          <h3>{{ t('detail.authors') }}</h3>
+          <ul class="author-list">
+            <li v-for="(a, i) in authors" :key="i">
+              <span>{{ a.name }}</span>
+              <a v-if="a.orcid" :href="a.orcid" target="_blank" rel="noopener" :title="a.orcid">
+                <svg class="orcid-icon"><use :href="`${baseUrl}icons.svg#orcid-icon`" /></svg>
+              </a>
+            </li>
+          </ul>
+        </div>
 
-      <div class="prose" v-html="bodyHtml"></div>
+        <div class="meta-card" v-if="metrics.length">
+          <h3>{{ t('detail.metrics') }}</h3>
+          <div class="stat-grid">
+            <div class="stat" v-for="[key, value] in metrics" :key="key">
+              <b>{{ value }}</b>
+              <span>{{ metricLabel(key) }}</span>
+            </div>
+          </div>
+        </div>
 
-      <div class="form-section" v-if="latest?.files?.length">
-        <h2>{{ t('detail.files') }}</h2>
-        <ul class="file-list">
-          <li v-for="f in latest.files" :key="f.filename">
-            <a :href="fileUrl(latest.doi, f.filename)" target="_blank" rel="noopener">{{ f.filename }}</a>
-            <span class="file-size">{{ formatSize(f.size) }}</span>
-          </li>
-        </ul>
-      </div>
+        <div class="meta-card" v-if="latest?.files?.length">
+          <h3>{{ t('detail.files') }}</h3>
+          <ul class="file-list">
+            <li v-for="f in latest.files" :key="f.filename">
+              <a :href="fileUrl(latest.doi, f.filename)" target="_blank" rel="noopener" :title="f.filename">{{ f.filename }}</a>
+              <span class="file-size">{{ formatSize(f.size) }}</span>
+            </li>
+          </ul>
+        </div>
 
-      <div class="form-section" v-if="isOwner">
-        <p class="form-help" v-if="record.schema_version === 'v0'" style="margin-top:0">{{ t('detail.legacyOwnerNote') }}</p>
-        <router-link
-          class="btn"
-          :class="record.schema_version === 'v0' ? 'btn--primary' : 'btn--olive'"
-          :to="`/models/${record.id}/new-version`"
-        >{{ record.schema_version === 'v0' ? t('myModels.upgrade') : t('detail.newVersion') }}</router-link>
-      </div>
-
-      <div class="form-section">
-        <h2>{{ t('detail.versions') }}</h2>
-        <ul>
-          <li v-for="v in record.versions" :key="v.id">
-            <a :href="zenodoUrl(v.doi)" target="_blank" rel="noopener">{{ v.doi }}</a>
-            — {{ t('detail.published') }} {{ v.published_at }}
-          </li>
-        </ul>
-      </div>
+        <div class="meta-card">
+          <h3>{{ t('detail.versions') }}</h3>
+          <ul class="version-list">
+            <li v-for="(v, i) in sortedVersions" :key="v.id">
+              <div class="version-list__row">
+                <a :href="zenodoUrl(v.doi)" target="_blank" rel="noopener">{{ v.doi }}</a>
+                <span class="chip chip--slate" v-if="i === 0"><span class="chip__v">{{ t('detail.latest') }}</span></span>
+              </div>
+              <span class="version-list__date">{{ t('detail.published') }} {{ formatDate(v.published_at) }}</span>
+            </li>
+          </ul>
+        </div>
+      </aside>
     </div>
   </template>
 </template>
 
 <style scoped>
-.author-list { list-style: none; margin: 0; padding: 0; }
-.author-list li { display: flex; align-items: center; gap: 6px; padding: 3px 0; }
-.orcid-icon { width: 16px; height: 16px; vertical-align: middle; }
+.pagehead .chips { margin-top: 16px; }
 
-.metrics-table { border-collapse: collapse; font-size: 14px; }
-.metrics-table thead th {
-  font-family: var(--sans); font-weight: 700; font-size: 12px;
-  text-transform: uppercase; letter-spacing: .03em; color: var(--ink);
-  text-align: left; padding: 8px 20px 8px 0;
-  border-top: 1.5px solid var(--ink);
-  border-bottom: 1px solid var(--ink-2);
+.detail-shell {
+  max-width: var(--maxw); margin: 0 auto; padding: 28px 28px 80px;
+  display: grid; grid-template-columns: 1fr var(--sidebar-w); gap: 30px;
+  align-items: start;
 }
-.metrics-table td { padding: 7px 20px 7px 0; color: var(--ink-2); text-transform: capitalize; }
-.metrics-table td:last-child { text-transform: none; font-family: var(--mono); }
-.metrics-table tbody tr:last-child td { border-bottom: 1.5px solid var(--ink); }
+.detail-main { min-width: 0; }
+.detail-aside { position: sticky; top: 76px; display: flex; flex-direction: column; gap: 16px; }
+
+.meta-card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 20px; box-shadow: var(--shadow-sm);
+}
+.meta-card h3 {
+  font-family: var(--serif); font-size: 15px; font-weight: 600;
+  color: var(--ink); margin: 0 0 14px; padding-bottom: 10px;
+  border-bottom: 1px solid var(--line); letter-spacing: -.01em;
+}
+
+.author-list { list-style: none; margin: 0; padding: 0; }
+.author-list li { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 4px 0; font-size: 14px; color: var(--ink-2); }
+.orcid-icon { width: 16px; height: 16px; vertical-align: middle; flex-shrink: 0; }
+
+.stat-grid { display: flex; flex-wrap: wrap; gap: 16px 24px; }
+.stat { display: flex; flex-direction: column; }
+.stat b { font-family: var(--mono); font-size: 16px; color: var(--ink); font-weight: 600; }
+.stat span { font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .03em; margin-top: 2px; }
 
 .file-list { list-style: none; margin: 0; padding: 0; }
-.file-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 0; }
-.file-size { color: var(--ink-3); font-size: 12.5px; white-space: nowrap; }
+.file-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 5px 0; font-size: 13.5px; }
+.file-list a { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-size { color: var(--ink-3); font-size: 12px; white-space: nowrap; flex-shrink: 0; }
+
+.version-list { list-style: none; margin: 0; padding: 0; }
+.version-list li { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.version-list li:last-child { border-bottom: none; padding-bottom: 0; }
+.version-list li:first-child { padding-top: 0; }
+.version-list__row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.version-list__row a { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.version-list__date { display: block; font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+
+@media (max-width: 1080px) {
+  .detail-shell { grid-template-columns: 1fr; }
+  .detail-aside { position: static; }
+}
 </style>
