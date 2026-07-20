@@ -94,6 +94,9 @@ const isOwner = computed(() => record.value?.is_owner ?? false)
       <div class="form-section" v-if="metrics.length">
         <h2>{{ t('detail.metrics') }}</h2>
         <table class="metrics-table">
+          <thead>
+            <tr><th>{{ t('form.metricName') }}</th><th>{{ t('form.metricValue') }}</th></tr>
+          </thead>
           <tbody>
             <tr v-for="[key, value] in metrics" :key="key">
               <td>{{ metricLabel(key) }}</td>
@@ -142,9 +145,17 @@ const isOwner = computed(() => record.value?.is_owner ?? false)
 .author-list li { display: flex; align-items: center; gap: 6px; padding: 3px 0; }
 .orcid-icon { width: 16px; height: 16px; vertical-align: middle; }
 
-.metrics-table { border-collapse: collapse; }
-.metrics-table td { padding: 3px 16px 3px 0; text-transform: capitalize; }
-.metrics-table td:last-child { text-transform: none; font-family: var(--mono); text-align: right; }
+.metrics-table { border-collapse: collapse; font-size: 14px; }
+.metrics-table thead th {
+  font-family: var(--sans); font-weight: 700; font-size: 12px;
+  text-transform: uppercase; letter-spacing: .03em; color: var(--ink);
+  text-align: left; padding: 8px 20px 8px 0;
+  border-top: 1.5px solid var(--ink);
+  border-bottom: 1px solid var(--ink-2);
+}
+.metrics-table td { padding: 7px 20px 7px 0; color: var(--ink-2); text-transform: capitalize; }
+.metrics-table td:last-child { text-transform: none; font-family: var(--mono); }
+.metrics-table tbody tr:last-child td { border-bottom: 1.5px solid var(--ink); }
 
 .file-list { list-style: none; margin: 0; padding: 0; }
 .file-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 0; }
