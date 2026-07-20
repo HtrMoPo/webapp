@@ -424,13 +424,8 @@ mark { background: #f3e6a8; color: inherit; border-radius: 3px; padding: 0 1px; 
 .bibtex .s { color: #d8c79a; }
 
 .card__foot { display: flex; align-items: center; gap: 9px; margin-top: 2px; }
-.card__downloads {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 12px; font-weight: 600; color: var(--ink-2); font-variant-numeric: tabular-nums;
-  background: var(--paper-2); border: 1px solid var(--line-2);
-  border-radius: 20px; padding: 5px 10px 5px 8px;
-}
-.card__downloads svg { width: 12px; height: 12px; color: var(--ink-3); flex-shrink: 0; }
+.chip__k svg { width: 11px; height: 11px; display: block; }
+.chip .chip__v { font-variant-numeric: tabular-nums; }
 
 /* compact mode */
 .grid.is-compact .card__band { padding: 11px 15px; }

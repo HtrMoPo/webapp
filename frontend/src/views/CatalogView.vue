@@ -210,12 +210,12 @@ function formatCount(n) {
               <span class="chip chip--slate" v-if="m.scriptChips.extra"><span class="chip__v">+{{ m.scriptChips.extra }}</span></span>
               <span class="chip chip--green"><span class="chip__k">license</span><span class="chip__v">{{ m.license }}</span></span>
               <span
-                class="card__downloads"
+                class="chip chip--slate"
                 v-if="formatCount(m.downloads)"
                 :title="t('catalog.downloads', { count: formatCount(m.downloads) }, m.downloads)"
               >
-                <svg><use :href="`${baseUrl}icons.svg#download-icon`" /></svg>
-                {{ formatCount(m.downloads) }}
+                <span class="chip__k"><svg><use :href="`${baseUrl}icons.svg#download-icon`" /></svg></span>
+                <span class="chip__v">{{ formatCount(m.downloads) }}</span>
               </span>
             </div>
             <p class="card__authors" v-if="m.authorLine">{{ m.authorLine }}</p>
