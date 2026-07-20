@@ -10,6 +10,13 @@ import { useIsoNames } from '../utils/iso'
 const { t } = useI18n()
 const { languageName, scriptName } = useIsoNames()
 const auth = useAuth()
+const baseUrl = import.meta.env.BASE_URL
+
+const CHIP_CAP = 4
+function capChips(values) {
+  const list = values || []
+  return { shown: list.slice(0, CHIP_CAP), extra: Math.max(0, list.length - CHIP_CAP) }
+}
 
 const models = ref([])
 const loading = ref(true)
@@ -33,7 +40,12 @@ function zenodoUrl(doi) {
 
 async function load() {
   const listed = await api.listModels()
-  models.value = listed.map((m) => ({ ...m, authorLine: cardAuthorLine(m) }))
+  models.value = listed.map((m) => ({
+    ...m,
+    authorLine: cardAuthorLine(m),
+    languageChips: capChips(m.language),
+    scriptChips: capChips(m.script),
+  }))
 }
 
 onMounted(async () => {
@@ -167,13 +179,18 @@ const filtered = computed(() => {
             <div class="chips">
               <span class="chip chip--slate" v-if="!m.is_public"><span class="chip__v">{{ t('catalog.yoursSandboxOnly') }}</span></span>
               <span class="chip chip--amber" v-if="m.schema_version === 'v0'"><span class="chip__v">{{ t('catalog.legacy') }}</span></span>
-              <span class="chip chip--rose" v-for="l in m.language" :key="l"><span class="chip__k">lang</span><span class="chip__v">{{ languageName(l) }}</span></span>
-              <span class="chip chip--rose" v-for="s in m.script" :key="s"><span class="chip__k">script</span><span class="chip__v">{{ scriptName(s) }}</span></span>
+              <span class="chip chip--rose" v-for="l in m.languageChips.shown" :key="l"><span class="chip__k">lang</span><span class="chip__v">{{ languageName(l) }}</span></span>
+              <span class="chip chip--slate" v-if="m.languageChips.extra"><span class="chip__v">+{{ m.languageChips.extra }}</span></span>
+              <span class="chip chip--rose" v-for="s in m.scriptChips.shown" :key="s"><span class="chip__k">script</span><span class="chip__v">{{ scriptName(s) }}</span></span>
+              <span class="chip chip--slate" v-if="m.scriptChips.extra"><span class="chip__v">+{{ m.scriptChips.extra }}</span></span>
               <span class="chip chip--green"><span class="chip__k">license</span><span class="chip__v">{{ m.license }}</span></span>
             </div>
             <div class="card__foot">
-              <router-link class="btn btn--ghost" :to="`/models/${m.slug}`">{{ t('catalog.viewRecord') }}</router-link>
-              <a v-if="zenodoUrl(m.latest_version?.doi)" class="btn btn--ghost" :href="zenodoUrl(m.latest_version.doi)" target="_blank" rel="noopener">{{ t('detail.viewOnZenodo') }}</a>
+              <router-link class="btn btn--olive" :to="`/models/${m.slug}`">{{ t('catalog.viewRecord') }}</router-link>
+              <a v-if="zenodoUrl(m.latest_version?.doi)" class="lnk" :href="zenodoUrl(m.latest_version.doi)" target="_blank" rel="noopener">
+                <svg><use :href="`${baseUrl}icons.svg#external-link-icon`" /></svg>
+                {{ t('detail.viewOnZenodo') }}
+              </a>
             </div>
           </div>
         </div>
