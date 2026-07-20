@@ -80,13 +80,13 @@ const isOwner = computed(() => record.value?.is_owner ?? false)
   <template v-else-if="record">
     <div class="pagehead">
       <h1>{{ record.title }}</h1>
-      <p>{{ record.summary }}</p>
       <div class="chips">
         <span class="chip chip--amber" v-if="record.schema_version === 'v0'"><span class="chip__v">{{ t('detail.legacyBadge') }}</span></span>
         <span class="chip chip--rose" v-for="l in record.language" :key="l"><span class="chip__k">lang</span><span class="chip__v">{{ languageName(l) }}</span></span>
         <span class="chip chip--rose" v-for="s in record.script" :key="s"><span class="chip__k">script</span><span class="chip__v">{{ scriptName(s) }}</span></span>
         <span class="chip chip--green"><span class="chip__k">license</span><span class="chip__v">{{ record.license }}</span></span>
       </div>
+      <p>{{ record.summary }}</p>
     </div>
 
     <div class="detail-shell">
@@ -154,7 +154,7 @@ const isOwner = computed(() => record.value?.is_owner ?? false)
 </template>
 
 <style scoped>
-.pagehead .chips { margin-top: 16px; }
+.pagehead .chips { margin: 14px 0; }
 
 .detail-shell {
   max-width: var(--maxw); margin: 0 auto; padding: 28px 28px 80px;

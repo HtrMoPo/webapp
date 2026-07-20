@@ -174,8 +174,6 @@ const filtered = computed(() => {
             <div class="card__title">{{ m.title }}</div>
           </div>
           <div class="card__body">
-            <p class="card__authors" v-if="m.authorLine">{{ m.authorLine }}</p>
-            <p class="card__desc">{{ m.summary }}</p>
             <div class="chips">
               <span class="chip chip--slate" v-if="!m.is_public"><span class="chip__v">{{ t('catalog.yoursSandboxOnly') }}</span></span>
               <span class="chip chip--amber" v-if="m.schema_version === 'v0'"><span class="chip__v">{{ t('catalog.legacy') }}</span></span>
@@ -185,6 +183,8 @@ const filtered = computed(() => {
               <span class="chip chip--slate" v-if="m.scriptChips.extra"><span class="chip__v">+{{ m.scriptChips.extra }}</span></span>
               <span class="chip chip--green"><span class="chip__k">license</span><span class="chip__v">{{ m.license }}</span></span>
             </div>
+            <p class="card__authors" v-if="m.authorLine">{{ m.authorLine }}</p>
+            <p class="card__desc">{{ m.summary }}</p>
             <div class="card__foot">
               <router-link class="btn btn--olive" :to="`/models/${m.slug}`">{{ t('catalog.viewRecord') }}</router-link>
               <a v-if="zenodoUrl(m.latest_version?.doi)" class="lnk" :href="zenodoUrl(m.latest_version.doi)" target="_blank" rel="noopener">
