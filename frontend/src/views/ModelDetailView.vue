@@ -15,10 +15,37 @@ const baseUrl = import.meta.env.BASE_URL
 
 const record = ref(null)
 const loading = ref(true)
+const citationBibtex = ref('')
+const citationLoading = ref(false)
+
+function zenodoApiBase(zenodoEnv) {
+  return zenodoEnv === 'production' ? 'https://zenodo.org' : 'https://sandbox.zenodo.org'
+}
+
+async function loadFallbackCitation() {
+  // Only a fallback: most cards don't carry a formatted citation of their
+  // own (metadata.citation is just a link to an associated paper, if any),
+  // so fetch Zenodo's own auto-generated BibTeX for the record instead of
+  // leaving citers with nothing. Zenodo's public records API supports this
+  // via content negotiation, no auth needed.
+  const recid = latest.value?.doi?.match(/zenodo\.(\d+)/)?.[1]
+  if (!recid) return
+  citationLoading.value = true
+  try {
+    const base = zenodoApiBase(latest.value.zenodo_env)
+    const resp = await fetch(`${base}/api/records/${recid}`, { headers: { Accept: 'application/x-bibtex' } })
+    if (resp.ok) citationBibtex.value = await resp.text()
+  } catch {
+    // best-effort -- the citation card just won't show a fallback
+  } finally {
+    citationLoading.value = false
+  }
+}
 
 onMounted(async () => {
   record.value = await api.getModel(props.slug)
   loading.value = false
+  if (!metadata.value.citation) await loadFallbackCitation()
 })
 
 // The API doesn't guarantee `versions` is ordered by publish date (harvested
@@ -125,6 +152,17 @@ const isOwner = computed(() => record.value?.is_owner ?? false)
           </ul>
         </div>
 
+        <div class="meta-card" v-if="metadata.citation || citationBibtex || citationLoading">
+          <h3>{{ t('detail.citation') }}</h3>
+          <p class="citation-reminder">{{ t('detail.citationReminder') }}</p>
+          <a v-if="metadata.citation" class="lnk" :href="metadata.citation" target="_blank" rel="noopener">
+            <svg><use :href="`${baseUrl}icons.svg#external-link-icon`" /></svg>
+            {{ t('detail.readPaper') }}
+          </a>
+          <pre class="bibtex" v-else-if="citationBibtex">{{ citationBibtex }}</pre>
+          <p class="form-help" v-else-if="citationLoading">{{ t('common.loading') }}</p>
+        </div>
+
         <div class="meta-card" v-if="metrics.length">
           <h3>{{ t('detail.metrics') }}</h3>
           <div class="stat-grid">
@@ -194,6 +232,9 @@ const isOwner = computed(() => record.value?.is_owner ?? false)
 .author-list { list-style: none; margin: 0; padding: 0; }
 .author-list li { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 4px 0; font-size: 14px; color: var(--ink-2); }
 .orcid-icon { width: 16px; height: 16px; vertical-align: middle; flex-shrink: 0; }
+
+.citation-reminder { font-size: 12.5px; line-height: 1.55; color: var(--ink-3); font-style: italic; margin: 0 0 12px; }
+.meta-card .bibtex { font-size: 10.5px; margin: 0; }
 
 .stat-grid { display: flex; flex-wrap: wrap; gap: 16px 24px; }
 .stat { display: flex; flex-direction: column; }

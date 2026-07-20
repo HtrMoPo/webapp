@@ -73,7 +73,9 @@
     "files": "File",
     "downloadKraken": "Scarica con Kraken",
     "copy": "Copia",
-    "copied": "Copiato"
+    "copied": "Copiato",
+    "citationReminder": "Un modello come questo rappresenta un vero lavoro scientifico — dati di addestramento, valutazione accurata, ore di lavoro. Una citazione è un piccolo modo per riconoscere questo impegno.",
+    "readPaper": "Leggi l'articolo"
   },
   "form": {
     "titleNew": "Documenta un nuovo modello",

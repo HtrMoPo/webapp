@@ -73,7 +73,9 @@
     "files": "Archivos",
     "downloadKraken": "Descargar con Kraken",
     "copy": "Copiar",
-    "copied": "Copiado"
+    "copied": "Copiado",
+    "citationReminder": "Un modelo como este representa trabajo académico real: datos de entrenamiento, evaluación cuidadosa, horas de esfuerzo. Citarlo es una forma sencilla de reconocer ese trabajo.",
+    "readPaper": "Leer el artículo"
   },
   "form": {
     "titleNew": "Documentar un nuevo modelo",

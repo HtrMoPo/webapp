@@ -73,7 +73,9 @@
     "files": "Files",
     "downloadKraken": "Download on Kraken",
     "copy": "Copy",
-    "copied": "Copied"
+    "copied": "Copied",
+    "citationReminder": "Models like this represent real scholarship — training data, careful evaluation, hours of work. A citation is a small way to credit that.",
+    "readPaper": "Read the paper"
   },
   "form": {
     "titleNew": "Document a new model",
