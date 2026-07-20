@@ -42,7 +42,7 @@
     "refreshDatasets": "Refresh HTR-United datasets",
     "yoursSandboxOnly": "yours — sandbox only, not public",
     "legacy": "legacy v0",
-    "downloads": "{count} downloads",
+    "downloads": "{count} download | {count} downloads",
     "sort": {
       "label": "Sort by",
       "alphabetical": "Alphabetical",

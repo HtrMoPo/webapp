@@ -24,7 +24,7 @@ const refreshing = ref(false)
 const refreshingDatasets = ref(false)
 const search = ref('')
 const selected = ref({ language: new Set(), script: new Set(), model_type: new Set(), license: new Set() })
-const sortBy = ref('alphabetical')
+const sortBy = ref('recency')
 
 function cardAuthorLine(model) {
   const yaml = model.latest_version?.card_yaml
@@ -119,6 +119,11 @@ const SORTERS = {
   downloads: (a, b) => (b.downloads || 0) - (a.downloads || 0),
 }
 const sorted = computed(() => [...filtered.value].sort(SORTERS[sortBy.value]))
+// The masonry (column-count) layout fills top-to-bottom-then-across, which
+// reads fine for an alphabetical index but scrambles a ranked order (#2
+// lands below #1 in the same column while #3 sits atop the next column) --
+// so ranked sorts (recency/downloads) switch to a row-major grid instead.
+const isRanked = computed(() => sortBy.value !== 'alphabetical')
 
 function formatCount(n) {
   if (n == null) return null
@@ -190,7 +195,7 @@ function formatCount(n) {
 
       <div v-if="loading" class="loading"><div class="spinner"></div>{{ t('common.loading') }}</div>
       <div v-else-if="!filtered.length" class="empty"><p>{{ t('catalog.empty') }}</p></div>
-      <div v-else class="grid">
+      <div v-else class="grid" :class="{ 'grid--ranked': isRanked }">
         <div class="card" v-for="m in sorted" :key="m.slug">
           <div class="card__band">
             <div class="card__title">{{ m.title }}</div>
@@ -213,7 +218,14 @@ function formatCount(n) {
                 <svg><use :href="`${baseUrl}icons.svg#external-link-icon`" /></svg>
                 {{ t('detail.viewOnZenodo') }}
               </a>
-              <span class="card__downloads" v-if="formatCount(m.downloads)">{{ t('catalog.downloads', { count: formatCount(m.downloads) }) }}</span>
+              <span
+                class="card__downloads"
+                v-if="formatCount(m.downloads)"
+                :title="t('catalog.downloads', { count: formatCount(m.downloads) }, m.downloads)"
+              >
+                <svg><use :href="`${baseUrl}icons.svg#download-icon`" /></svg>
+                {{ formatCount(m.downloads) }}
+              </span>
             </div>
           </div>
         </div>

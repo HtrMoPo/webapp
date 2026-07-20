@@ -42,7 +42,7 @@
     "refreshDatasets": "Actualiser les jeux de données HTR-United",
     "yoursSandboxOnly": "à vous — bac à sable, non public",
     "legacy": "ancien v0",
-    "downloads": "{count} téléchargements",
+    "downloads": "{count} téléchargement | {count} téléchargements",
     "sort": {
       "label": "Trier par",
       "alphabetical": "Alphabétique",

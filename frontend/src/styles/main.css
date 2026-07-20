@@ -335,6 +335,14 @@ a:hover { color: var(--accent-deep); text-decoration: underline; }
 }
 .grid.is-compact { column-count: 3; column-gap: 16px; }
 .grid.is-list { column-count: 1; }
+/* Rank-ordered sorts (recency/downloads) need row-major reading order --
+   masonry's column-count fills a whole column before starting the next,
+   which puts #2 below #1 instead of beside it. */
+.grid.grid--ranked {
+  column-count: unset; display: grid;
+  grid-template-columns: repeat(2, 1fr); gap: 22px; align-items: start;
+}
+.grid.grid--ranked .card { margin-bottom: 0; }
 
 .card {
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
@@ -416,7 +424,13 @@ mark { background: #f3e6a8; color: inherit; border-radius: 3px; padding: 0 1px; 
 .bibtex .s { color: #d8c79a; }
 
 .card__foot { display: flex; align-items: center; gap: 9px; margin-top: 2px; }
-.card__downloads { margin-left: auto; font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.card__downloads {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 600; color: var(--ink-2); font-variant-numeric: tabular-nums;
+  background: var(--paper-2); border: 1px solid var(--line-2);
+  border-radius: 20px; padding: 5px 10px 5px 8px;
+}
+.card__downloads svg { width: 12px; height: 12px; color: var(--ink-3); flex-shrink: 0; }
 
 /* compact mode */
 .grid.is-compact .card__band { padding: 11px 15px; }
@@ -699,6 +713,7 @@ mark { background: #f3e6a8; color: inherit; border-radius: 3px; padding: 0 1px; 
   .sidebar { position: static; }
   .sidebar__scroll { max-height: none; }
   .grid { column-count: 1; }
+  .grid.grid--ranked { grid-template-columns: 1fr; }
   .grid.is-compact { column-count: 2; }
   .tool-card { grid-template-columns: 1fr; }
   .tool-card__image { padding: 20px; }
