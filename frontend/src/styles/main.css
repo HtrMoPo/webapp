@@ -1,6 +1,6 @@
 /* ============================================================
    HTR-United — Design System
-   Palette: verdigris headers · rose taxonomy · blue metrics · green software
+   Palette: espresso headers · rose taxonomy · blue metrics · green software
    ============================================================ */
 
 :root {
@@ -14,11 +14,11 @@
   --line:         #e3ded0;
   --line-2:       #d6d0bf;
 
-  --olive:        #3c7a72;
-  --olive-deep:   #295850;
-  --olive-tint:   #d2e5e2;
-  --olive-tint-2: #e6f0ee;
-  --olive-band:   #8ec3ba;
+  --olive:        #6b5245;
+  --olive-deep:   #443731;
+  --olive-tint:   #ecdccb;
+  --olive-tint-2: #f5ece1;
+  --olive-band:   #c9ab8e;
 
   --rose-bg:   #f6e2e0;  --rose-line: #ecc9c5;  --rose-ink: #97494a;
   --blue-bg:   #dde9f4;  --blue-line: #c5dbef;  --blue-ink: #2f5d86;
@@ -321,7 +321,7 @@ a:hover { color: var(--accent-deep); text-decoration: underline; }
 .achip__cat { color: var(--ink-3); font-weight: 600; }
 .achip button {
   width: 17px; height: 17px; border: none; border-radius: 50%; cursor: pointer;
-  background: rgba(41,88,80,.16); color: var(--olive-deep); font-size: 13px;
+  background: rgba(68,55,49,.16); color: var(--olive-deep); font-size: 13px;
   display: flex; align-items: center; justify-content: center; line-height: 1;
 }
 .achip button:hover { background: var(--olive); color: #fff; }
@@ -347,16 +347,16 @@ a:hover { color: var(--accent-deep); text-decoration: underline; }
 
 .card__band {
   background: var(--olive-band);
-  border-bottom: 1px solid rgba(41,88,80,.28);
+  border-bottom: 1px solid rgba(68,55,49,.28);
   padding: 13px 18px; display: flex; align-items: flex-start;
   justify-content: space-between; gap: 14px;
 }
 .card__title {
-  font-family: var(--serif); font-size: 17px; font-weight: 600; color: #16332e;
+  font-family: var(--serif); font-size: 17px; font-weight: 600; color: #3a2b22;
   letter-spacing: -.01em; line-height: 1.25;
 }
 .card__era {
-  text-align: right; flex-shrink: 0; color: #1f4a42; font-size: 12px;
+  text-align: right; flex-shrink: 0; color: #4a3729; font-size: 12px;
   font-style: italic; line-height: 1.45;
 }
 .card__era b { font-style: normal; font-weight: 700; font-family: var(--mono); font-size: 11.5px; }
