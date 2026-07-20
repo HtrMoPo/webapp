@@ -58,7 +58,7 @@ const datasetQuery = ref('')
 const catalogModels = ref([])
 const htrUnitedDatasets = ref([])
 const files = ref([])
-const isPrivate = ref(true)
+const requestCommunity = ref(true)
 // Free-text version label (e.g. "1.6.0") -- not part of the HTRMoPo v1 card
 // schema/catalog metadata, only sent through to Zenodo's own `version`
 // field at publish time (see PublishIn.version on the backend).
@@ -394,7 +394,9 @@ async function publish() {
     const stopFlag = { done: false }
     const pollPromise = pollPublishProgress(id, stopFlag)
     try {
-      const res = await api.publishDraft(id, isPrivate.value, versionLabel.value.trim())
+      // publishDraft's second arg is Zenodo's "private" flag -- the inverse
+      // of this checkbox's "request community inclusion" meaning.
+      const res = await api.publishDraft(id, !requestCommunity.value, versionLabel.value.trim())
       publishedDoi.value = res.doi
       versionId.value = null
       justPublished.value = { doi: res.doi, slug: res.slug }
@@ -646,7 +648,7 @@ async function publish() {
         <div class="form-help">{{ t('form.versionLabelHelp') }}</div>
       </div>
       <label class="checkbox-item">
-        <input type="checkbox" v-model="isPrivate" />
+        <input type="checkbox" v-model="requestCommunity" />
         {{ t('form.private') }}
       </label>
       <div class="output-actions">
