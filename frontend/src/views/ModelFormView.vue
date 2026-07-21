@@ -8,6 +8,7 @@ import { useI18n } from 'vue-i18n'
 import { api } from '../api/client'
 import { useAuth } from '../composables/useAuth'
 import WysiwygEditor from '../components/WysiwygEditor.vue'
+import { modelPath } from '../utils/modelUrl'
 
 // Plain TurndownService has no <table> rule at all -- it just flattens a
 // table's cells into loose text, losing rows/columns entirely. The gfm
@@ -68,7 +69,7 @@ const publishing = ref(false)
 const saving = ref(false)
 const progress = ref('')
 const publishedDoi = ref('')
-// Set right after a successful publish, holding {doi, slug} -- while set, the
+// Set right after a successful publish, holding {doi, doiSlug} -- while set, the
 // form is replaced with a success panel nudging the user to also fill in
 // Zenodo-specific metadata (e.g. funding/grants) that this app's HTRMoPo
 // card doesn't cover, before they move on to the model's page.
@@ -399,7 +400,7 @@ async function publish() {
       const res = await api.publishDraft(id, !requestCommunity.value, versionLabel.value.trim())
       publishedDoi.value = res.doi
       versionId.value = null
-      justPublished.value = { doi: res.doi, slug: res.slug }
+      justPublished.value = { doi: res.doi, doiSlug: res.doi_slug }
     } finally {
       stopFlag.done = true
       await pollPromise
@@ -435,7 +436,7 @@ async function publish() {
           target="_blank"
           rel="noopener"
         >{{ t('detail.viewOnZenodo') }}</a>
-        <router-link class="btn btn--ghost" :to="`/models/${justPublished.slug}`">
+        <router-link class="btn btn--ghost" :to="modelPath(justPublished.doiSlug, title)">
           {{ t('form.continueToModel') }}
         </router-link>
       </div>

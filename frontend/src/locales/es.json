@@ -42,6 +42,7 @@
     "refreshDatasets": "Actualizar conjuntos de datos de HTR-United",
     "yoursSandboxOnly": "tuyo — solo sandbox, no público",
     "legacy": "v0 antiguo",
+    "showObsolete": "Mostrar versiones obsoletas",
     "downloads": "{count} descarga | {count} descargas",
     "sort": {
       "label": "Ordenar por",
@@ -76,7 +77,9 @@
     "copied": "Copiado",
     "citationReminder": "Un modelo como este representa trabajo académico real: datos de entrenamiento, evaluación cuidadosa, horas de esfuerzo. Citarlo es una forma sencilla de reconocer ese trabajo.",
     "readPaper": "Leer el artículo",
-    "copyCitation": "Copiar cita"
+    "copyCitation": "Copiar cita",
+    "previousVersions": "Versión(es) anterior(es)",
+    "obsoletedBy": "Reemplazado por"
   },
   "form": {
     "titleNew": "Documentar un nuevo modelo",

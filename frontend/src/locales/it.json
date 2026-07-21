@@ -42,6 +42,7 @@
     "refreshDatasets": "Aggiorna i dataset HTR-United",
     "yoursSandboxOnly": "tuo — solo sandbox, non pubblico",
     "legacy": "v0 legacy",
+    "showObsolete": "Mostra versioni obsolete",
     "downloads": "{count} download | {count} download",
     "sort": {
       "label": "Ordina per",
@@ -76,7 +77,9 @@
     "copied": "Copiato",
     "citationReminder": "Un modello come questo rappresenta un vero lavoro scientifico — dati di addestramento, valutazione accurata, ore di lavoro. Una citazione è un piccolo modo per riconoscere questo impegno.",
     "readPaper": "Leggi l'articolo",
-    "copyCitation": "Copia citazione"
+    "copyCitation": "Copia citazione",
+    "previousVersions": "Versione/i precedente/i",
+    "obsoletedBy": "Sostituito da"
   },
   "form": {
     "titleNew": "Documenta un nuovo modello",

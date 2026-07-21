@@ -271,6 +271,23 @@ async def refresh_download_stats(db: AsyncSession) -> dict:
     result = await db.execute(select(ModelRecord).options(selectinload(ModelRecord.versions)))
     records = result.scalars().all()
 
+    # recid -> ModelRecord.id, built once up front so an obsoleting DOI
+    # reported by Zenodo can be resolved to a record we've already harvested,
+    # without an extra query per record. Zenodo's "isObsoletedBy" identifier
+    # is typically the *concept* DOI (redirects to whichever version is
+    # currently latest), not a specific version DOI, so both need indexing.
+    recid_to_record_id: dict[str, int] = {}
+    for record in records:
+        if record.concept_doi:
+            recid = doi_to_recid(record.concept_doi)
+            if recid:
+                recid_to_record_id[recid] = record.id
+        for v in record.versions:
+            if v.version_doi:
+                recid = doi_to_recid(v.version_doi)
+                if recid:
+                    recid_to_record_id[recid] = record.id
+
     updated = failed = 0
     async with httpx.AsyncClient(timeout=15.0) as client:
         for record in records:
@@ -286,7 +303,8 @@ async def refresh_download_stats(db: AsyncSession) -> dict:
             try:
                 resp = await client.get(f"{base}/api/records/{recid}")
                 resp.raise_for_status()
-                stats = resp.json().get("stats") or {}
+                payload = resp.json()
+                stats = payload.get("stats") or {}
             except Exception as exc:
                 logger.info("Failed to refresh download stats for record %s: %s", record.slug, exc)
                 failed += 1
@@ -294,6 +312,18 @@ async def refresh_download_stats(db: AsyncSession) -> dict:
 
             record.downloads = stats.get("downloads")
             record.views = stats.get("views")
+
+            obsoleted_by_doi = None
+            for rel in payload.get("metadata", {}).get("related_identifiers", []):
+                if rel.get("relation") == "isObsoletedBy" and rel.get("identifier"):
+                    obsoleted_by_doi = rel["identifier"]
+                    break
+            record.obsoleted_by_doi = obsoleted_by_doi
+            obsoleted_by_recid = doi_to_recid(obsoleted_by_doi) if obsoleted_by_doi else None
+            record.obsoleted_by_record_id = (
+                recid_to_record_id.get(obsoleted_by_recid) if obsoleted_by_recid else None
+            )
+
             await db.commit()
             updated += 1
 

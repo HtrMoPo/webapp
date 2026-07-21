@@ -6,6 +6,7 @@ import { api } from '../api/client'
 import { useAuth } from '../composables/useAuth'
 import { formatAuthorList } from '../utils/authors'
 import { useIsoNames } from '../utils/iso'
+import { modelPath } from '../utils/modelUrl'
 
 const { t, locale } = useI18n()
 const { languageName, scriptName } = useIsoNames()
@@ -30,6 +31,7 @@ const refreshingDatasets = ref(false)
 const search = ref('')
 const selected = ref({ language: new Set(), script: new Set(), model_type: new Set(), license: new Set() })
 const sortBy = ref('recency')
+const showObsolete = ref(false)
 
 function cardAuthorLine(model) {
   const yaml = model.latest_version?.card_yaml
@@ -108,6 +110,7 @@ function toggle(field, value) {
 const filtered = computed(() => {
   const q = search.value.trim().toLowerCase()
   return models.value.filter((m) => {
+    if (m.obsoleted_by && !showObsolete.value) return false
     if (q && !(`${m.title} ${m.summary}`.toLowerCase().includes(q))) return false
     for (const field of ['language', 'script', 'model_type']) {
       const set = selected.value[field]
@@ -148,6 +151,15 @@ function formatCount(n) {
       <div class="sidebar__scroll">
         <div class="search">
           <input v-model="search" :placeholder="t('catalog.search')" />
+        </div>
+
+        <div class="facet">
+          <div class="facet__body">
+            <label class="opt" :class="{ 'is-on': showObsolete }">
+              <span class="opt__box" @click="showObsolete = !showObsolete"></span>
+              <span class="opt__label" @click="showObsolete = !showObsolete">{{ t('catalog.showObsolete') }}</span>
+            </label>
+          </div>
         </div>
 
         <div class="facet" v-for="[field, label, values] in [
@@ -232,7 +244,7 @@ function formatCount(n) {
             <p class="card__authors" v-if="m.authorLine">{{ m.authorLine }}</p>
             <p class="card__desc">{{ m.summary }}</p>
             <div class="card__foot">
-              <router-link class="btn btn--olive" :to="`/models/${m.slug}`">{{ t('catalog.viewRecord') }}</router-link>
+              <router-link class="btn btn--olive" :to="modelPath(m.doi_slug, m.title)">{{ t('catalog.viewRecord') }}</router-link>
               <a v-if="zenodoUrl(m.latest_version?.doi)" class="lnk" :href="zenodoUrl(m.latest_version.doi)" target="_blank" rel="noopener">
                 <svg><use :href="`${baseUrl}icons.svg#external-link-icon`" /></svg>
                 {{ t('detail.viewOnZenodo') }}

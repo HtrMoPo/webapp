@@ -42,6 +42,7 @@
     "refreshDatasets": "Refresh HTR-United datasets",
     "yoursSandboxOnly": "yours — sandbox only, not public",
     "legacy": "legacy v0",
+    "showObsolete": "Show obsoleted versions",
     "downloads": "{count} download | {count} downloads",
     "sort": {
       "label": "Sort by",
@@ -76,7 +77,9 @@
     "copied": "Copied",
     "citationReminder": "Models like this represent real scholarship — training data, careful evaluation, hours of work. A citation is a small way to credit that.",
     "readPaper": "See the paper",
-    "copyCitation": "Copy citation"
+    "copyCitation": "Copy citation",
+    "previousVersions": "Previous version(s)",
+    "obsoletedBy": "Superseded by"
   },
   "form": {
     "titleNew": "Document a new model",

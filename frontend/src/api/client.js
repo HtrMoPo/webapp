@@ -41,7 +41,7 @@ export const api = {
   listModels: () => request('/models'),
   myModels: () => request('/models/mine'),
   syncMine: () => request('/models/mine/sync', { method: 'POST' }),
-  getModel: (slug) => request(`/models/${slug}`),
+  getModel: (doiSlug) => request(`/models/${doiSlug}`),
 
   createDraft: (payload) => request('/models/drafts', { method: 'POST', body: JSON.stringify(payload) }),
   createVersionDraft: (recordId, payload) =>

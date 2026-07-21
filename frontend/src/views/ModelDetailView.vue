@@ -1,13 +1,14 @@
 <script setup>
 import { load as loadYaml } from 'js-yaml'
 import { marked } from 'marked'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { api } from '../api/client'
 import { useAuth } from '../composables/useAuth'
 import { useIsoNames } from '../utils/iso'
+import { modelPath } from '../utils/modelUrl'
 
-const props = defineProps({ slug: { type: String, required: true } })
+const props = defineProps({ doiSlug: { type: String, required: true } })
 const { t, locale } = useI18n()
 const { languageName, scriptName } = useIsoNames()
 const auth = useAuth()
@@ -49,11 +50,22 @@ async function copyCitation() {
   setTimeout(() => { citationCopied.value = false }, 1500)
 }
 
-onMounted(async () => {
-  record.value = await api.getModel(props.slug)
-  loading.value = false
-  await loadZenodoCitation()
-})
+// Vue Router reuses this component instance (rather than remounting) when
+// navigating between two routes that both match `/models/:doiSlug/:titleSlug?`
+// -- e.g. clicking the "Previous version(s)"/"Superseded by" links on this
+// very page -- so the data load has to react to the doiSlug prop changing,
+// not just run once on mount.
+watch(
+  () => props.doiSlug,
+  async (doiSlug) => {
+    loading.value = true
+    citationBibtex.value = ''
+    record.value = await api.getModel(doiSlug)
+    loading.value = false
+    await loadZenodoCitation()
+  },
+  { immediate: true }
+)
 
 // The API doesn't guarantee `versions` is ordered by publish date (harvested
 // records can be inserted in a different order than they were published),
@@ -147,6 +159,12 @@ const isOwner = computed(() => record.value?.is_owner ?? false)
       </div>
 
       <aside class="detail-aside">
+        <div class="meta-card" v-if="record.obsoleted_by">
+          <h3>{{ t('detail.obsoletedBy') }}</h3>
+          <router-link v-if="record.obsoleted_by.doi_slug" class="lnk" :to="modelPath(record.obsoleted_by.doi_slug, record.obsoleted_by.title)">{{ record.obsoleted_by.title }}</router-link>
+          <a v-else class="lnk" :href="zenodoUrl(record.obsoleted_by.doi)" target="_blank" rel="noopener">{{ record.obsoleted_by.doi }}</a>
+        </div>
+
         <div class="meta-card" v-if="authors.length">
           <h3>{{ t('detail.authors') }}</h3>
           <ul class="author-list">
@@ -199,6 +217,16 @@ const isOwner = computed(() => record.value?.is_owner ?? false)
             <li v-for="f in latest.files" :key="f.filename">
               <a :href="fileUrl(latest.doi, f.filename)" target="_blank" rel="noopener" :title="f.filename">{{ f.filename }}</a>
               <span class="file-size">{{ formatSize(f.size) }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="meta-card" v-if="record.obsoletes?.length">
+          <h3>{{ t('detail.previousVersions') }}</h3>
+          <ul class="version-list">
+            <li v-for="o in record.obsoletes" :key="o.doi_slug || o.doi">
+              <router-link v-if="o.doi_slug" class="lnk" :to="modelPath(o.doi_slug, o.title)">{{ o.title }}</router-link>
+              <a v-else class="lnk" :href="zenodoUrl(o.doi)" target="_blank" rel="noopener">{{ o.doi }}</a>
             </li>
           </ul>
         </div>

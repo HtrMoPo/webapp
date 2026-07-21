@@ -12,7 +12,7 @@ from app.config import get_settings
 from app.db import async_session, get_db
 from app.deps import get_current_user
 from app.models import ModelRecord, ModelVersion, User
-from app.slugs import slugify, unique_slug
+from app.slugs import doi_to_url_slug, slugify, unique_slug, url_slug_to_doi
 from app.zenodo_client import ZenodoClient, ZenodoError, build_zenodo_metadata
 
 logger = logging.getLogger(__name__)
@@ -47,13 +47,31 @@ def _is_public(version: ModelVersion) -> bool:
     return version.status == "published" and version.zenodo_env == "production" and not version.is_placeholder
 
 
-def _record_summary(record: ModelRecord, versions: list[ModelVersion] | None = None) -> dict:
+def _record_summary(
+    record: ModelRecord,
+    versions: list[ModelVersion] | None = None,
+    *,
+    records_by_id: dict[int, ModelRecord] | None = None,
+) -> dict:
     versions = versions if versions is not None else [v for v in record.versions if _is_public(v)]
     latest = versions[-1] if versions else None
+    obsoleted_by = None
+    if record.obsoleted_by_doi:
+        target = records_by_id.get(record.obsoleted_by_record_id) if records_by_id else None
+        obsoleted_by = {
+            "doi": record.obsoleted_by_doi,
+            "doi_slug": doi_to_url_slug(target.concept_doi) if target and target.concept_doi else None,
+            "title": target.current_title if target else None,
+        }
     return {
         "id": record.id,
         "slug": record.slug,
         "concept_doi": record.concept_doi,
+        # DOI-based URL identifier (e.g. "10.5281-zenodo.6669508") -- the
+        # canonical part of the model detail page URL, stable across title
+        # changes unlike `slug`. Null only for draft-only records, which are
+        # never publicly linkable anyway (see get_model's 404 below).
+        "doi_slug": doi_to_url_slug(record.concept_doi) if record.concept_doi else None,
         "title": record.current_title,
         "summary": record.current_summary,
         "model_type": record.model_type,
@@ -67,6 +85,11 @@ def _record_summary(record: ModelRecord, versions: list[ModelVersion] | None = N
         # the "publish a new version" flow).
         "schema_version": latest.schema_version if latest else None,
         "latest_version": _version_summary(latest) if latest else None,
+        # Set when Zenodo reports this record as obsoleted by another one
+        # (see app.harvest.refresh_download_stats). "slug"/"title" are only
+        # populated if the obsoleting record has been harvested into our own
+        # catalog too -- otherwise it's just the raw DOI.
+        "obsoleted_by": obsoleted_by,
     }
 
 
@@ -89,6 +112,7 @@ def _version_summary(version: ModelVersion) -> dict:
 async def list_models(request: Request, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(ModelRecord).options(selectinload(ModelRecord.versions)))
     records = result.scalars().all()
+    records_by_id = {r.id: r for r in records}
     session_user_id = request.session.get("user_id")
 
     output = []
@@ -97,7 +121,11 @@ async def list_models(request: Request, db: AsyncSession = Depends(get_db)):
         is_mine = session_user_id is not None and session_user_id == r.owner_user_id
 
         if public_versions:
-            output.append({**_record_summary(r, public_versions), "is_mine": is_mine, "is_public": True})
+            output.append({
+                **_record_summary(r, public_versions, records_by_id=records_by_id),
+                "is_mine": is_mine,
+                "is_public": True,
+            })
         elif is_mine:
             # Not yet public (e.g. sandbox-only), but it's the requester's own
             # record -- surface it to them (badged on the frontend), with any
@@ -107,7 +135,11 @@ async def list_models(request: Request, db: AsyncSession = Depends(get_db)):
             # visible on /mine.
             own_versions = [v for v in r.versions if v.status == "published" and not v.is_placeholder]
             if own_versions:
-                output.append({**_record_summary(r, own_versions), "is_mine": True, "is_public": False})
+                output.append({
+                    **_record_summary(r, own_versions, records_by_id=records_by_id),
+                    "is_mine": True,
+                    "is_public": False,
+                })
 
     return output
 
@@ -136,10 +168,13 @@ async def sync_mine(user: User = Depends(get_current_user), db: AsyncSession = D
     return await claim.sync_my_depositions(user, db)
 
 
-@router.get("/{slug}")
-async def get_model(slug: str, request: Request, db: AsyncSession = Depends(get_db)):
+@router.get("/{doi_slug}")
+async def get_model(doi_slug: str, request: Request, db: AsyncSession = Depends(get_db)):
+    doi = url_slug_to_doi(doi_slug)
+    if not doi:
+        raise HTTPException(status_code=404, detail="not_found")
     result = await db.execute(
-        select(ModelRecord).where(ModelRecord.slug == slug).options(selectinload(ModelRecord.versions))
+        select(ModelRecord).where(ModelRecord.concept_doi == doi).options(selectinload(ModelRecord.versions))
     )
     record = result.scalar_one_or_none()
     if not record:
@@ -157,10 +192,32 @@ async def get_model(slug: str, request: Request, db: AsyncSession = Depends(get_
     ]
     if not visible_versions:
         raise HTTPException(status_code=404, detail="not_found")
+
+    related_ids = set()
+    if record.obsoleted_by_record_id:
+        related_ids.add(record.obsoleted_by_record_id)
+    obsoletes_result = await db.execute(
+        select(ModelRecord).where(ModelRecord.obsoleted_by_record_id == record.id)
+    )
+    obsoletes = obsoletes_result.scalars().all()
+    related_ids.update(r.id for r in obsoletes)
+
+    records_by_id = {}
+    if related_ids:
+        related_result = await db.execute(select(ModelRecord).where(ModelRecord.id.in_(related_ids)))
+        records_by_id = {r.id: r for r in related_result.scalars().all()}
+
     return {
-        **_record_summary(record, visible_versions),
+        **_record_summary(record, visible_versions, records_by_id=records_by_id),
         "is_owner": is_owner,
         "versions": [_version_summary(v) for v in visible_versions],
+        # Records that Zenodo reports as obsoleted by *this* one -- surfaced
+        # here so they stay discoverable from the model that superseded them
+        # even though they're excluded from the main catalog by default.
+        "obsoletes": [
+            {"doi_slug": doi_to_url_slug(r.concept_doi) if r.concept_doi else None, "title": r.current_title, "doi": r.concept_doi}
+            for r in obsoletes
+        ],
     }
 
 
@@ -418,7 +475,12 @@ async def publish_draft(
 
     asyncio.create_task(_trigger_background_harvest())
 
-    return {"doi": version.version_doi, "concept_doi": record.concept_doi, "slug": record.slug}
+    return {
+        "doi": version.version_doi,
+        "concept_doi": record.concept_doi,
+        "slug": record.slug,
+        "doi_slug": doi_to_url_slug(record.concept_doi),
+    }
 
 
 @router.get("/versions/{version_id}/publish/progress")

@@ -98,6 +98,17 @@ class ModelRecord(Base):
     downloads: Mapped[int | None] = mapped_column(nullable=True)
     views: Mapped[int | None] = mapped_column(nullable=True)
 
+    # Zenodo's "isObsoletedBy" related_identifier, read from the same
+    # records API response as downloads/views (see
+    # app.harvest.refresh_download_stats). obsoleted_by_doi is the raw DOI
+    # Zenodo reports even if we haven't harvested the target record;
+    # obsoleted_by_record_id is populated once/if that DOI resolves to a
+    # ModelRecord we know about.
+    obsoleted_by_doi: Mapped[str | None] = mapped_column(String, nullable=True)
+    obsoleted_by_record_id: Mapped[int | None] = mapped_column(
+        ForeignKey("model_records.id"), nullable=True
+    )
+
     created_at: Mapped[dt.datetime] = mapped_column(default=_now)
     updated_at: Mapped[dt.datetime] = mapped_column(default=_now, onupdate=_now)
 
