@@ -75,7 +75,8 @@
     "copy": "Copier",
     "copied": "Copié",
     "citationReminder": "Un modèle comme celui-ci représente un vrai travail scientifique — données d'entraînement, évaluation soignée, des heures de travail. Une citation est une façon simple de reconnaître ce travail.",
-    "readPaper": "Lire l'article"
+    "readPaper": "Lire l'article",
+    "copyCitation": "Copier la citation"
   },
   "form": {
     "titleNew": "Documenter un nouveau modèle",

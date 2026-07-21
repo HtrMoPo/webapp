@@ -75,7 +75,8 @@
     "copy": "Copy",
     "copied": "Copied",
     "citationReminder": "Models like this represent real scholarship — training data, careful evaluation, hours of work. A citation is a small way to credit that.",
-    "readPaper": "See the paper"
+    "readPaper": "See the paper",
+    "copyCitation": "Copy citation"
   },
   "form": {
     "titleNew": "Document a new model",

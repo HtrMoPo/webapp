@@ -75,7 +75,8 @@
     "copy": "Kopieren",
     "copied": "Kopiert",
     "citationReminder": "Ein Modell wie dieses steht für echte wissenschaftliche Arbeit — Trainingsdaten, sorgfältige Evaluierung, viele Arbeitsstunden. Eine Zitation ist eine kleine Anerkennung dafür.",
-    "readPaper": "Artikel lesen"
+    "readPaper": "Artikel lesen",
+    "copyCitation": "Zitat kopieren"
   },
   "form": {
     "titleNew": "Neues Modell dokumentieren",

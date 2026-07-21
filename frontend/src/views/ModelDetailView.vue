@@ -22,12 +22,12 @@ function zenodoApiBase(zenodoEnv) {
   return zenodoEnv === 'production' ? 'https://zenodo.org' : 'https://sandbox.zenodo.org'
 }
 
-async function loadFallbackCitation() {
-  // Only a fallback: most cards don't carry a formatted citation of their
-  // own (metadata.citation is just a link to an associated paper, if any),
-  // so fetch Zenodo's own auto-generated BibTeX for the record instead of
-  // leaving citers with nothing. Zenodo's public records API supports this
-  // via content negotiation, no auth needed.
+async function loadZenodoCitation() {
+  // Always fetched: metadata.citation is just a link to an associated paper
+  // (if any), not a formatted citation for the model itself, so the BibTeX
+  // block always comes from Zenodo's own auto-generated citation for the
+  // record. Zenodo's public records API supports this via content
+  // negotiation, no auth needed.
   const recid = latest.value?.doi?.match(/zenodo\.(\d+)/)?.[1]
   if (!recid) return
   citationLoading.value = true
@@ -36,16 +36,23 @@ async function loadFallbackCitation() {
     const resp = await fetch(`${base}/api/records/${recid}`, { headers: { Accept: 'application/x-bibtex' } })
     if (resp.ok) citationBibtex.value = await resp.text()
   } catch {
-    // best-effort -- the citation card just won't show a fallback
+    // best-effort -- the citation card just won't show the BibTeX block
   } finally {
     citationLoading.value = false
   }
 }
 
+const citationCopied = ref(false)
+async function copyCitation() {
+  await navigator.clipboard.writeText(citationBibtex.value)
+  citationCopied.value = true
+  setTimeout(() => { citationCopied.value = false }, 1500)
+}
+
 onMounted(async () => {
   record.value = await api.getModel(props.slug)
   loading.value = false
-  if (!metadata.value.citation) await loadFallbackCitation()
+  await loadZenodoCitation()
 })
 
 // The API doesn't guarantee `versions` is ordered by publish date (harvested
@@ -152,15 +159,20 @@ const isOwner = computed(() => record.value?.is_owner ?? false)
           </ul>
         </div>
 
-        <div class="meta-card" v-if="metadata.citation || citationBibtex || citationLoading">
+        <div class="meta-card" v-if="citationBibtex || citationLoading || metadata.citation">
           <h3>{{ t('detail.citation') }}</h3>
           <p class="citation-reminder">{{ t('detail.citationReminder') }}</p>
-          <a v-if="metadata.citation" class="lnk" :href="metadata.citation" target="_blank" rel="noopener">
-            <svg><use :href="`${baseUrl}icons.svg#external-link-icon`" /></svg>
-            {{ t('detail.readPaper') }}
-          </a>
-          <pre class="bibtex" v-else-if="citationBibtex">{{ citationBibtex }}</pre>
-          <p class="form-help" v-else-if="citationLoading">{{ t('common.loading') }}</p>
+          <p class="form-help" v-if="citationLoading && !citationBibtex">{{ t('common.loading') }}</p>
+          <template v-if="citationBibtex">
+            <pre class="bibtex">{{ citationBibtex }}</pre>
+            <button type="button" class="bibtex-copy" @click="copyCitation">{{ citationCopied ? t('detail.copied') : t('detail.copyCitation') }}</button>
+          </template>
+          <div class="citation-paper" v-if="metadata.citation">
+            <a class="lnk" :href="metadata.citation" target="_blank" rel="noopener">
+              <svg><use :href="`${baseUrl}icons.svg#external-link-icon`" /></svg>
+              {{ t('detail.readPaper') }}
+            </a>
+          </div>
         </div>
 
         <div class="meta-card" v-if="metrics.length">
@@ -235,6 +247,15 @@ const isOwner = computed(() => record.value?.is_owner ?? false)
 
 .citation-reminder { font-size: 12.5px; line-height: 1.55; color: var(--ink-3); font-style: italic; margin: 0 0 12px; }
 .meta-card .bibtex { font-size: 10.5px; margin: 0; }
+.bibtex-copy {
+  display: block; margin: 8px 0 0 auto;
+  font-family: var(--sans); font-size: 11px; font-weight: 600;
+  background: var(--paper-2); color: var(--ink-2); border: 1px solid var(--line-2);
+  border-radius: 5px; padding: 5px 9px; cursor: pointer;
+}
+.bibtex-copy:hover { background: var(--paper); color: var(--ink); }
+.citation-paper { text-align: center; margin-top: 14px; }
+.citation-paper .lnk { display: inline-flex; }
 
 .stat-grid { display: flex; flex-wrap: wrap; gap: 16px 24px; }
 .stat { display: flex; flex-direction: column; }

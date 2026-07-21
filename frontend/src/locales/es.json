@@ -75,7 +75,8 @@
     "copy": "Copiar",
     "copied": "Copiado",
     "citationReminder": "Un modelo como este representa trabajo académico real: datos de entrenamiento, evaluación cuidadosa, horas de esfuerzo. Citarlo es una forma sencilla de reconocer ese trabajo.",
-    "readPaper": "Leer el artículo"
+    "readPaper": "Leer el artículo",
+    "copyCitation": "Copiar cita"
   },
   "form": {
     "titleNew": "Documentar un nuevo modelo",
