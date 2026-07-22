@@ -43,6 +43,7 @@
     "yoursSandboxOnly": "yours — sandbox only, not public",
     "legacy": "legacy v0",
     "showObsolete": "Show obsoleted versions",
+    "showVariants": "Show variants",
     "downloads": "{count} download | {count} downloads",
     "sort": {
       "label": "Sort by",
@@ -79,7 +80,10 @@
     "readPaper": "See the paper",
     "copyCitation": "Copy citation",
     "previousVersions": "Previous version(s)",
-    "obsoletedBy": "Superseded by"
+    "obsoletedBy": "Superseded by",
+    "variants": "Variant(s)",
+    "variantOf": "Variant of",
+    "relatedPapers": "Related paper(s)"
   },
   "form": {
     "titleNew": "Document a new model",

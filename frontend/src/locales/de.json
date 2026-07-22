@@ -43,6 +43,7 @@
     "yoursSandboxOnly": "Ihres — nur Sandbox, nicht öffentlich",
     "legacy": "alt (v0)",
     "showObsolete": "Veraltete Versionen anzeigen",
+    "showVariants": "Varianten anzeigen",
     "downloads": "{count} Download | {count} Downloads",
     "sort": {
       "label": "Sortieren nach",
@@ -79,7 +80,10 @@
     "readPaper": "Artikel lesen",
     "copyCitation": "Zitat kopieren",
     "previousVersions": "Frühere Version(en)",
-    "obsoletedBy": "Ersetzt durch"
+    "obsoletedBy": "Ersetzt durch",
+    "variants": "Variante(n)",
+    "variantOf": "Variante von",
+    "relatedPapers": "Zugehörige(r) Artikel"
   },
   "form": {
     "titleNew": "Neues Modell dokumentieren",

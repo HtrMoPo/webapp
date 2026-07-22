@@ -105,6 +105,10 @@ function zenodoUrl(doi) {
   return recid ? `${auth.zenodoBaseUrl}/records/${recid}` : '#'
 }
 
+function paperUrl(paper) {
+  return paper.scheme === 'doi' ? `https://doi.org/${paper.identifier}` : paper.identifier
+}
+
 function fileUrl(doi, filename) {
   const recid = doi?.match(/zenodo\.(\d+)/)?.[1]
   return recid ? `${auth.zenodoBaseUrl}/records/${recid}/files/${encodeURIComponent(filename)}?download=1` : '#'
@@ -163,6 +167,12 @@ const isOwner = computed(() => record.value?.is_owner ?? false)
           <h3>{{ t('detail.obsoletedBy') }}</h3>
           <router-link v-if="record.obsoleted_by.doi_slug" class="lnk" :to="modelPath(record.obsoleted_by.doi_slug, record.obsoleted_by.title)">{{ record.obsoleted_by.title }}</router-link>
           <a v-else class="lnk" :href="zenodoUrl(record.obsoleted_by.doi)" target="_blank" rel="noopener">{{ record.obsoleted_by.doi }}</a>
+        </div>
+
+        <div class="meta-card" v-if="record.variant_of">
+          <h3>{{ t('detail.variantOf') }}</h3>
+          <router-link v-if="record.variant_of.doi_slug" class="lnk" :to="modelPath(record.variant_of.doi_slug, record.variant_of.title)">{{ record.variant_of.title }}</router-link>
+          <a v-else class="lnk" :href="zenodoUrl(record.variant_of.doi)" target="_blank" rel="noopener">{{ record.variant_of.doi }}</a>
         </div>
 
         <div class="meta-card" v-if="authors.length">
@@ -227,6 +237,25 @@ const isOwner = computed(() => record.value?.is_owner ?? false)
             <li v-for="o in record.obsoletes" :key="o.doi_slug || o.doi">
               <router-link v-if="o.doi_slug" class="lnk" :to="modelPath(o.doi_slug, o.title)">{{ o.title }}</router-link>
               <a v-else class="lnk" :href="zenodoUrl(o.doi)" target="_blank" rel="noopener">{{ o.doi }}</a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="meta-card" v-if="record.variants?.length">
+          <h3>{{ t('detail.variants') }}</h3>
+          <ul class="version-list">
+            <li v-for="v in record.variants" :key="v.doi_slug || v.doi">
+              <router-link v-if="v.doi_slug" class="lnk" :to="modelPath(v.doi_slug, v.title)">{{ v.title }}</router-link>
+              <a v-else class="lnk" :href="zenodoUrl(v.doi)" target="_blank" rel="noopener">{{ v.doi }}</a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="meta-card" v-if="record.documented_by?.length">
+          <h3>{{ t('detail.relatedPapers') }}</h3>
+          <ul class="version-list">
+            <li v-for="p in record.documented_by" :key="p.identifier">
+              <a class="lnk" :href="paperUrl(p)" target="_blank" rel="noopener">{{ p.title || p.identifier }}</a>
             </li>
           </ul>
         </div>

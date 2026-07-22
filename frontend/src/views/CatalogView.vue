@@ -32,6 +32,7 @@ const search = ref('')
 const selected = ref({ language: new Set(), script: new Set(), model_type: new Set(), license: new Set() })
 const sortBy = ref('recency')
 const showObsolete = ref(false)
+const showVariants = ref(false)
 
 function cardAuthorLine(model) {
   const yaml = model.latest_version?.card_yaml
@@ -111,6 +112,7 @@ const filtered = computed(() => {
   const q = search.value.trim().toLowerCase()
   return models.value.filter((m) => {
     if (m.obsoleted_by && !showObsolete.value) return false
+    if (m.variant_of && !showVariants.value) return false
     if (q && !(`${m.title} ${m.summary}`.toLowerCase().includes(q))) return false
     for (const field of ['language', 'script', 'model_type']) {
       const set = selected.value[field]
@@ -158,6 +160,10 @@ function formatCount(n) {
             <label class="opt" :class="{ 'is-on': showObsolete }">
               <span class="opt__box" @click="showObsolete = !showObsolete"></span>
               <span class="opt__label" @click="showObsolete = !showObsolete">{{ t('catalog.showObsolete') }}</span>
+            </label>
+            <label class="opt" :class="{ 'is-on': showVariants }">
+              <span class="opt__box" @click="showVariants = !showVariants"></span>
+              <span class="opt__label" @click="showVariants = !showVariants">{{ t('catalog.showVariants') }}</span>
             </label>
           </div>
         </div>

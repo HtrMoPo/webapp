@@ -109,6 +109,25 @@ class ModelRecord(Base):
         ForeignKey("model_records.id"), nullable=True
     )
 
+    # Zenodo's "isVariantFormOf" related_identifier (see
+    # app.harvest._parse_related_identifiers) -- e.g. CATMuS-Print Small/Tiny
+    # each point at CATMuS-Print Large as their base variant. Unlike
+    # obsoleted_by, this isn't "stale, don't show" -- just a sibling model --
+    # so it's surfaced separately and only hides a record from the main
+    # catalog behind its own "Show variants" toggle (see CatalogView.vue).
+    variant_of_doi: Mapped[str | None] = mapped_column(String, nullable=True)
+    variant_of_record_id: Mapped[int | None] = mapped_column(
+        ForeignKey("model_records.id"), nullable=True
+    )
+
+    # Zenodo's "isDocumentedBy" related_identifiers -- papers describing the
+    # model. No title is available from the relation itself; `title` is
+    # resolved best-effort and cached the first time (see
+    # app.harvest._fetch_paper_title) and never re-fetched once populated,
+    # since a published version's related_identifiers can't change.
+    # [{"identifier": str, "scheme": "doi" | "url", "resource_type": str, "title": str | None}]
+    documented_by: Mapped[list] = mapped_column(JSON, default=list)
+
     created_at: Mapped[dt.datetime] = mapped_column(default=_now)
     updated_at: Mapped[dt.datetime] = mapped_column(default=_now, onupdate=_now)
 

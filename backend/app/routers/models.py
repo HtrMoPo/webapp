@@ -63,6 +63,14 @@ def _record_summary(
             "doi_slug": doi_to_url_slug(target.concept_doi) if target and target.concept_doi else None,
             "title": target.current_title if target else None,
         }
+    variant_of = None
+    if record.variant_of_doi:
+        target = records_by_id.get(record.variant_of_record_id) if records_by_id else None
+        variant_of = {
+            "doi": record.variant_of_doi,
+            "doi_slug": doi_to_url_slug(target.concept_doi) if target and target.concept_doi else None,
+            "title": target.current_title if target else None,
+        }
     return {
         "id": record.id,
         "slug": record.slug,
@@ -90,6 +98,15 @@ def _record_summary(
         # populated if the obsoleting record has been harvested into our own
         # catalog too -- otherwise it's just the raw DOI.
         "obsoleted_by": obsoleted_by,
+        # Set when Zenodo reports this record as a variant of another model
+        # (e.g. CATMuS-Print Small/Tiny of Large) -- same shape as
+        # obsoleted_by, but not a "stale" relation: hidden from the main
+        # catalog behind its own toggle instead (see CatalogView.vue).
+        "variant_of": variant_of,
+        # Papers describing this model (Zenodo's "isDocumentedBy" relation).
+        # "title" is best-effort resolved/cached by app.harvest and may be
+        # null if it couldn't be resolved.
+        "documented_by": record.documented_by,
     }
 
 
@@ -196,11 +213,19 @@ async def get_model(doi_slug: str, request: Request, db: AsyncSession = Depends(
     related_ids = set()
     if record.obsoleted_by_record_id:
         related_ids.add(record.obsoleted_by_record_id)
+    if record.variant_of_record_id:
+        related_ids.add(record.variant_of_record_id)
     obsoletes_result = await db.execute(
         select(ModelRecord).where(ModelRecord.obsoleted_by_record_id == record.id)
     )
     obsoletes = obsoletes_result.scalars().all()
     related_ids.update(r.id for r in obsoletes)
+
+    variants_result = await db.execute(
+        select(ModelRecord).where(ModelRecord.variant_of_record_id == record.id)
+    )
+    variants = variants_result.scalars().all()
+    related_ids.update(r.id for r in variants)
 
     records_by_id = {}
     if related_ids:
@@ -217,6 +242,13 @@ async def get_model(doi_slug: str, request: Request, db: AsyncSession = Depends(
         "obsoletes": [
             {"doi_slug": doi_to_url_slug(r.concept_doi) if r.concept_doi else None, "title": r.current_title, "doi": r.concept_doi}
             for r in obsoletes
+        ],
+        # Records that Zenodo reports as a variant of *this* one -- surfaced
+        # the same way as obsoletes, but distinct: these are sibling models,
+        # not superseded ones.
+        "variants": [
+            {"doi_slug": doi_to_url_slug(r.concept_doi) if r.concept_doi else None, "title": r.current_title, "doi": r.concept_doi}
+            for r in variants
         ],
     }
 

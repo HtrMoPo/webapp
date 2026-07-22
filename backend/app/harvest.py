@@ -11,9 +11,10 @@ them through this app) are never overwritten by harvesting, so this can't
 clobber someone's own in-progress edits with a possibly-stale public copy.
 """
 
-import asyncio
 import datetime as dt
+import html
 import logging
+import re
 import xml.etree.ElementTree as ET
 from urllib.parse import urlsplit
 
@@ -23,6 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app import card
+from app.http_retry import get_with_retry as _get_with_retry
 from app.models import ModelRecord, ModelVersion
 from app.slugs import slugify, unique_slug
 from app.zenodo_client import doi_to_recid
@@ -31,20 +33,6 @@ logger = logging.getLogger(__name__)
 
 PRODUCTION_OAI_URL = "https://zenodo.org/oai2d"
 _OAI_SET = "user-ocr_models"
-
-
-async def _get_with_retry(client: httpx.AsyncClient, url: str, *, retries: int = 5, **kwargs) -> httpx.Response:
-    """Zenodo's OAI-PMH endpoint has, in practice, returned 502/503/504
-    gateway errors under load for this specific (community-scoped) query --
-    transient, and a retry a few seconds later usually gets through. Without
-    this, a single blip fails the whole harvest with nothing committed (the
-    very first ListRecords page hasn't yielded anything to commit yet)."""
-    for attempt in range(retries + 1):
-        resp = await client.get(url, **kwargs)
-        if resp.status_code not in (502, 503, 504) or attempt == retries:
-            return resp
-        await asyncio.sleep(3)
-    return resp
 
 
 def _doi_from_url(url: str | None) -> str | None:
@@ -256,6 +244,79 @@ def _zenodo_base_url(zenodo_env: str | None) -> str:
     return "https://zenodo.org" if zenodo_env == "production" else "https://sandbox.zenodo.org"
 
 
+_TITLE_TAG_RE = re.compile(r"<title[^>]*>(.*?)</title>", re.IGNORECASE | re.DOTALL)
+
+
+def _parse_related_identifiers(related_identifiers: list[dict]) -> dict:
+    """Pure parsing of a Zenodo record's `metadata.related_identifiers`,
+    split out from refresh_download_stats so it's unit-testable without a
+    live network call.
+
+    Returns {"obsoleted_by_doi": str | None, "variant_of_doi": str | None,
+    "documented_by": [{"identifier", "scheme", "resource_type"}, ...]}.
+
+    isVariantFormOf is only accepted when it points at a DOI-identified
+    model (scheme == "doi" and resource_type == "model") -- unlike
+    isObsoletedBy, Zenodo doesn't guarantee this relation is model-to-model,
+    so it's checked explicitly rather than assumed.
+    """
+    obsoleted_by_doi = None
+    variant_of_doi = None
+    documented_by = []
+    for rel in related_identifiers:
+        relation = rel.get("relation")
+        identifier = rel.get("identifier")
+        if not identifier:
+            continue
+        if relation == "isObsoletedBy" and obsoleted_by_doi is None:
+            obsoleted_by_doi = identifier
+        elif (
+            relation == "isVariantFormOf"
+            and variant_of_doi is None
+            and rel.get("scheme") == "doi"
+            and rel.get("resource_type") == "model"
+        ):
+            variant_of_doi = identifier
+        elif relation == "isDocumentedBy":
+            documented_by.append(
+                {
+                    "identifier": identifier,
+                    "scheme": rel.get("scheme"),
+                    "resource_type": rel.get("resource_type"),
+                }
+            )
+    return {
+        "obsoleted_by_doi": obsoleted_by_doi,
+        "variant_of_doi": variant_of_doi,
+        "documented_by": documented_by,
+    }
+
+
+async def _fetch_paper_title(client: httpx.AsyncClient, identifier: str, scheme: str | None) -> str | None:
+    """Best-effort title resolution for an isDocumentedBy paper -- there's no
+    title in the related_identifier itself. Never blocks the harvest: any
+    failure (404, timeout, unparseable response) just leaves the title
+    unresolved, to be retried on a future run (see refresh_download_stats,
+    which only calls this for identifiers still missing a cached title)."""
+    try:
+        if scheme == "doi":
+            resp = await client.get(
+                f"https://doi.org/{identifier}",
+                headers={"Accept": "application/vnd.citationstyles.csl+json"},
+                follow_redirects=True,
+            )
+            resp.raise_for_status()
+            title = resp.json().get("title")
+            return title or None
+        resp = await client.get(identifier, follow_redirects=True)
+        resp.raise_for_status()
+        match = _TITLE_TAG_RE.search(resp.text)
+        return html.unescape(match.group(1)).strip() or None if match else None
+    except Exception as exc:
+        logger.info("Could not resolve paper title for %s: %s", identifier, exc)
+        return None
+
+
 async def refresh_download_stats(db: AsyncSession) -> dict:
     """Best-effort download/view stats refresh via Zenodo's public records
     API (GET /api/records/<id>, no auth needed) -- covers every record with
@@ -271,11 +332,12 @@ async def refresh_download_stats(db: AsyncSession) -> dict:
     result = await db.execute(select(ModelRecord).options(selectinload(ModelRecord.versions)))
     records = result.scalars().all()
 
-    # recid -> ModelRecord.id, built once up front so an obsoleting DOI
-    # reported by Zenodo can be resolved to a record we've already harvested,
-    # without an extra query per record. Zenodo's "isObsoletedBy" identifier
-    # is typically the *concept* DOI (redirects to whichever version is
-    # currently latest), not a specific version DOI, so both need indexing.
+    # recid -> ModelRecord.id, built once up front so an obsoleting/variant
+    # DOI reported by Zenodo can be resolved to a record we've already
+    # harvested, without an extra query per record. Zenodo's
+    # "isObsoletedBy"/"isVariantFormOf" identifiers are typically the
+    # *concept* DOI (redirects to whichever version is currently latest),
+    # not a specific version DOI, so both need indexing.
     recid_to_record_id: dict[str, int] = {}
     for record in records:
         if record.concept_doi:
@@ -313,16 +375,32 @@ async def refresh_download_stats(db: AsyncSession) -> dict:
             record.downloads = stats.get("downloads")
             record.views = stats.get("views")
 
-            obsoleted_by_doi = None
-            for rel in payload.get("metadata", {}).get("related_identifiers", []):
-                if rel.get("relation") == "isObsoletedBy" and rel.get("identifier"):
-                    obsoleted_by_doi = rel["identifier"]
-                    break
-            record.obsoleted_by_doi = obsoleted_by_doi
-            obsoleted_by_recid = doi_to_recid(obsoleted_by_doi) if obsoleted_by_doi else None
+            relations = _parse_related_identifiers(payload.get("metadata", {}).get("related_identifiers", []))
+
+            record.obsoleted_by_doi = relations["obsoleted_by_doi"]
+            obsoleted_by_recid = doi_to_recid(relations["obsoleted_by_doi"]) if relations["obsoleted_by_doi"] else None
             record.obsoleted_by_record_id = (
                 recid_to_record_id.get(obsoleted_by_recid) if obsoleted_by_recid else None
             )
+
+            record.variant_of_doi = relations["variant_of_doi"]
+            variant_of_recid = doi_to_recid(relations["variant_of_doi"]) if relations["variant_of_doi"] else None
+            record.variant_of_record_id = (
+                recid_to_record_id.get(variant_of_recid) if variant_of_recid else None
+            )
+
+            # A resolved title is cached forever -- a published version's
+            # related_identifiers can't change, so there's nothing to
+            # re-fetch once we already have one (mirrors the "files can't
+            # change" reasoning behind app.claim's placeholder self-heal).
+            cached_titles = {p["identifier"]: p.get("title") for p in (record.documented_by or [])}
+            documented_by = []
+            for paper in relations["documented_by"]:
+                title = cached_titles.get(paper["identifier"])
+                if title is None:
+                    title = await _fetch_paper_title(client, paper["identifier"], paper["scheme"])
+                documented_by.append({**paper, "title": title})
+            record.documented_by = documented_by
 
             await db.commit()
             updated += 1

@@ -37,6 +37,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import card
+from app.http_retry import get_with_retry
 from app.models import ModelRecord, ModelVersion, User
 from app.slugs import slugify, unique_slug
 from app.zenodo_client import ZenodoClient, ZenodoError, doi_to_recid
@@ -121,7 +122,7 @@ async def _fetch_legacy_v0_metadata(doi: str) -> dict | None:
     url = f"{_PRODUCTION_FILE_BASE}/{recid}/files/metadata.json"
     try:
         async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as client:
-            resp = await client.get(url)
+            resp = await get_with_retry(client, url)
             resp.raise_for_status()
             v0_metadata = resp.json()
         card.validate_v0_metadata(v0_metadata)
@@ -217,26 +218,56 @@ async def sync_my_depositions(user: User, db: AsyncSession) -> dict:
             await db.execute(select(ModelVersion).where(ModelVersion.version_doi == doi))
         ).scalar_one_or_none()
         if existing_version is not None:
-            # Already tracked. The one thing still worth doing is taking
-            # ownership of a harvested *legacy v0* record (owned by nobody) so
-            # its owner can upgrade it to v1 -- a v1 record already carries
-            # full metadata and is left as harvested. Ownership is verified
-            # against the trustworthy single-record detail first, as always.
             record = await db.get(ModelRecord, existing_version.model_record_id)
-            if not (
+            if record is not None and record.owner_user_id is None and existing_version.schema_version == "v0":
+                # Already tracked, harvested v0, owned by nobody -- take
+                # ownership so its owner can upgrade it to v1. Ownership is
+                # verified against the trustworthy single-record detail first,
+                # as always.
+                if not await _verify_ownership(client, deposition, user):
+                    skipped += 1
+                    continue
+                record.owner_user_id = user.id
+                record.source = "app"
+                await db.commit()
+                claimed += 1
+                continue
+
+            if (
                 record is not None
-                and record.owner_user_id is None
-                and existing_version.schema_version == "v0"
+                and record.owner_user_id == user.id
+                and existing_version.is_placeholder
+                and _is_legacy_v0({"files": existing_version.files or []})
             ):
-                skipped += 1
-                continue
-            if not await _verify_ownership(client, deposition, user):
-                skipped += 1
-                continue
-            record.owner_user_id = user.id
-            record.source = "app"
-            await db.commit()
-            claimed += 1
+                # Already ours, but stuck as an empty placeholder from an
+                # earlier run whose metadata.json fetch failed (a transient
+                # Zenodo gateway error, no retry at the time -- see
+                # get_with_retry). The file listing itself can't have changed
+                # for an already-published version, so there's no need to
+                # re-hit the deposit API for it -- only the one thing that
+                # never actually succeeded, the metadata.json content, is
+                # worth retrying.
+                v0_metadata = await _fetch_legacy_v0_metadata(doi)
+                if v0_metadata is not None:
+                    metadata, body_md = card.v0_to_v1_metadata(v0_metadata)
+                    record.current_title = metadata["summary"]
+                    record.current_summary = metadata["summary"]
+                    record.model_type = metadata["model_type"]
+                    record.language = metadata["language"]
+                    record.script = metadata["script"]
+                    record.license = metadata["license"]
+                    existing_version.card_yaml = card.build_card_text(metadata, body_md)
+                    existing_version.card_body_md = body_md
+                    existing_version.schema_version = "v0"
+                    existing_version.is_placeholder = False
+                    existing_version.files = [
+                        f for f in (existing_version.files or []) if f.get("filename") != "metadata.json"
+                    ]
+                    await db.commit()
+                    claimed += 1
+                    continue
+
+            skipped += 1
             continue
 
         try:

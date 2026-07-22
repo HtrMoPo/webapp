@@ -43,6 +43,7 @@
     "yoursSandboxOnly": "à vous — bac à sable, non public",
     "legacy": "ancien v0",
     "showObsolete": "Afficher les versions obsolètes",
+    "showVariants": "Afficher les variantes",
     "downloads": "{count} téléchargement | {count} téléchargements",
     "sort": {
       "label": "Trier par",
@@ -79,7 +80,10 @@
     "readPaper": "Lire l'article",
     "copyCitation": "Copier la citation",
     "previousVersions": "Version(s) précédente(s)",
-    "obsoletedBy": "Remplacé par"
+    "obsoletedBy": "Remplacé par",
+    "variants": "Variante(s)",
+    "variantOf": "Variante de",
+    "relatedPapers": "Article(s) associé(s)"
   },
   "form": {
     "titleNew": "Documenter un nouveau modèle",
