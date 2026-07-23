@@ -58,6 +58,12 @@ function toOptions(entries) {
   return entries.map((m) => ({ value: doiFor(m), label: m.title }))
 }
 const segmentationOptions = computed(() => toOptions(optionsFor('segmentation')))
+// kraken's own well-known general-purpose segmentation model -- used as the
+// default pick whenever the current page's model isn't itself a
+// segmentation model (see load()).
+const defaultSegmentationOption = computed(() =>
+  segmentationOptions.value.find((o) => o.label.startsWith('General segmentation model'))
+)
 const recognitionOptions = computed(() => toOptions(optionsFor('recognition')))
 // D-Fine region models are also tagged "segmentation" in this catalog (no
 // dedicated "region" model_type exists yet) -- offered as a distinct,
@@ -78,6 +84,13 @@ async function load() {
 
     if (rec.model_type?.includes('segmentation')) segmentationDoi.value = doiFor(rec) || ''
     if (rec.model_type?.includes('recognition')) recognitionDoi.value = doiFor(rec) || ''
+    // Falls back to kraken's own well-known default segmentation model when
+    // the page's own model isn't a segmentation one (e.g. viewing a
+    // recognition model) -- saves searching for it by hand every time,
+    // since it's a sensible default for most images.
+    if (!segmentationDoi.value) {
+      segmentationDoi.value = defaultSegmentationOption.value?.value || ''
+    }
     direction.value = rec.script?.some((s) => RTL_SCRIPTS.has(s)) ? 'rtl' : 'ltr'
   } catch (e) {
     loadError.value = e.message || 'Failed to load'
