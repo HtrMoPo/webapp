@@ -380,16 +380,16 @@ const hoveredLineAnchor = computed(() => {
               >{{ line.text }}</li>
             </ol>
           </div>
+        </div>
 
-          <div v-if="regionTypes.length" class="meta-card playground-region-legend">
-            <h3>{{ t('playground.regions') }}</h3>
-            <ul>
-              <li v-for="type in regionTypes" :key="type">
-                <span class="playground-region-swatch" :style="{ background: regionColor(type) }"></span>
-                {{ type }}
-              </li>
-            </ul>
-          </div>
+        <div v-if="regionTypes.length" class="meta-card playground-region-legend">
+          <h3>{{ t('playground.regions') }}</h3>
+          <ul>
+            <li v-for="type in regionTypes" :key="type">
+              <span class="playground-region-swatch" :style="{ background: regionColor(type) }"></span>
+              {{ type }}
+            </li>
+          </ul>
         </div>
       </div>
     </template>
@@ -495,7 +495,12 @@ const hoveredLineAnchor = computed(() => {
 .playground-lines li { border-radius: 4px; padding: 2px 6px; margin: 0 -6px; cursor: default; transition: background .1s, box-shadow .1s; }
 .playground-lines li.is-hovered { background: var(--olive-tint); box-shadow: inset 3px 0 0 var(--olive); font-weight: 600; }
 
-.playground-region-legend ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.playground-region-legend {
+  /* Spans both columns -- it applies to the image+text pair as a whole
+     (a region type shows up in both), not to just one side. */
+  grid-column: 1 / -1;
+}
+.playground-region-legend ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 22px; }
 .playground-region-legend li { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
 .playground-region-swatch { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
 
