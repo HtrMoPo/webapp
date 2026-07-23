@@ -83,7 +83,8 @@
     "obsoletedBy": "Ersetzt durch",
     "variants": "Variante(n)",
     "variantOf": "Variante von",
-    "relatedPapers": "Zugehörige(r) Artikel"
+    "relatedPapers": "Zugehörige(r) Artikel",
+    "tryPlayground": "Im Playground ausprobieren"
   },
   "form": {
     "titleNew": "Neues Modell dokumentieren",
@@ -172,8 +173,37 @@
     "save": "Speichern",
     "add": "Hinzufügen",
     "remove": "Entfernen",
+    "optional": "optional",
     "language_en": "Englisch",
     "language_fr": "Französisch",
     "language": "Sprache"
+  },
+  "playground": {
+    "title": "Playground",
+    "subtitle": "Ausprobieren",
+    "segmentationModel": "Segmentierungsmodell",
+    "recognitionModel": "Texterkennungsmodell",
+    "regionModel": "Regionsmodell (D-Fine)",
+    "selectModel": "Modell auswählen…",
+    "none": "Keins",
+    "direction": "Textrichtung",
+    "ltr": "Links nach rechts",
+    "rtl": "Rechts nach links",
+    "image": "Bild",
+    "dropImage": "Bild hierher ziehen oder klicken zum Auswählen",
+    "run": "Starten",
+    "queued": "In Warteschlange — Position {position}",
+    "running": "Ihr Bild wird verarbeitet…",
+    "recognizedText": "Erkannter Text",
+    "resetZoom": "Zurücksetzen",
+    "font": "Schriftart",
+    "fontDefault": "Standard",
+    "regions": "Erkannte Regionen",
+    "needImage": "Bitte wählen Sie zuerst ein Bild aus.",
+    "needModels": "Bitte wählen Sie ein Segmentierungs- und ein Erkennungsmodell aus.",
+    "submitFailed": "Der Auftrag konnte nicht übermittelt werden.",
+    "rateLimitExceeded": "Sie haben das Anfragelimit für den Playground erreicht — bitte versuchen Sie es später erneut.",
+    "queueFull": "Die Playground-Warteschlange ist derzeit voll — bitte versuchen Sie es in einigen Minuten erneut.",
+    "unknownError": "Bei der Verarbeitung dieses Bildes ist ein Fehler aufgetreten."
   }
 }

@@ -45,6 +45,24 @@ class Settings(BaseSettings):
     # logging in app.routers.auth) are silently dropped.
     log_level: str = "INFO"
 
+    # Playground: try-a-model-in-the-browser feature (see app/playground/).
+    # Kept in its own SQLite file rather than the main catalog DB since it's
+    # high-churn, ephemeral (uploaded images, job results), and unrelated to
+    # the versioned catalog schema Alembic manages.
+    enable_playground: bool = True
+    playground_database_path: str = "./data/playground.db"
+    # Base URL of the separate kraken/D-Fine runner container -- never
+    # exposed outside the docker-compose network.
+    playground_runner_url: str = "http://runner:8100"
+    playground_job_timeout_seconds: int = 300
+    # Hard cap on total rows kept in playground_jobs; only ever enforced by
+    # evicting the oldest *done* rows (see app.playground.router) -- a full
+    # queue of in-flight jobs instead causes new submissions to be rejected.
+    playground_max_rows: int = 100
+    # Per-IP throttling: at most N job submissions per rolling window.
+    playground_rate_limit_max_per_ip: int = 5
+    playground_rate_limit_window_minutes: int = 60
+
     @property
     def zenodo_base_url(self) -> str:
         if self.zenodo_env == "production":

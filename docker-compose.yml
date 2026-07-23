@@ -21,6 +21,41 @@ services:
       NIGHTLY_HARVEST_HOUR_UTC: ${NIGHTLY_HARVEST_HOUR_UTC:-2}
       UVICORN_WORKERS: ${UVICORN_WORKERS:-1}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      ENABLE_PLAYGROUND: ${ENABLE_PLAYGROUND:-true}
+      PLAYGROUND_DATABASE_PATH: /data/playground.db
+      PLAYGROUND_RUNNER_URL: http://runner:8100
+      # Kept above runner's own INFERENCE_TIMEOUT_SECONDS (900, see the
+      # runner service below) so the runner's own timeout error has a
+      # chance to come back over HTTP instead of this client's timeout
+      # firing first and racing it.
+      PLAYGROUND_JOB_TIMEOUT_SECONDS: ${PLAYGROUND_JOB_TIMEOUT_SECONDS:-960}
+      PLAYGROUND_MAX_ROWS: ${PLAYGROUND_MAX_ROWS:-100}
+      PLAYGROUND_RATE_LIMIT_MAX_PER_IP: ${PLAYGROUND_RATE_LIMIT_MAX_PER_IP:-5}
+      PLAYGROUND_RATE_LIMIT_WINDOW_MINUTES: ${PLAYGROUND_RATE_LIMIT_WINDOW_MINUTES:-60}
     volumes:
       - ./data:/data
     restart: unless-stopped
+    depends_on:
+      - runner
+
+  runner:
+    build:
+      context: ./runner
+    environment:
+      RUNNER_THREADS: ${RUNNER_THREADS:-4}
+      # party (transformer + LLM-decoder recognizer) generates tokens
+      # autoregressively per line on CPU, an order of magnitude slower per
+      # line than the classic CTC recognizers this used to be tuned for --
+      # see runner/app/main.py.
+      INFERENCE_TIMEOUT_SECONDS: ${INFERENCE_TIMEOUT_SECONDS:-900}
+    volumes:
+      - runner-model-cache:/cache
+    # No ports: block -- only reachable from `app` over the compose network.
+    # Caps this container's CPU footprint regardless of RUNNER_THREADS, since
+    # kraken/torch can still spawn more native threads than requested on some
+    # BLAS backends.
+    cpus: ${RUNNER_CPUS:-4}
+    restart: unless-stopped
+
+volumes:
+  runner-model-cache:

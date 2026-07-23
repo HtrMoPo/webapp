@@ -219,6 +219,7 @@ const isOwner = computed(() => record.value?.is_owner ?? false)
             <code>{{ krakenCommand }}</code>
             <button type="button" class="kraken-cmd__copy" @click="copyKrakenCommand">{{ copied ? t('detail.copied') : t('detail.copy') }}</button>
           </div>
+          <router-link class="btn btn--olive playground-cta" :to="`/models/${doiSlug}/playground`">{{ t('detail.tryPlayground') }}</router-link>
         </div>
 
         <div class="meta-card" v-if="latest?.files?.length">
@@ -333,6 +334,7 @@ const isOwner = computed(() => record.value?.is_owner ?? false)
   border-radius: 5px; padding: 5px 9px; cursor: pointer;
 }
 .kraken-cmd__copy:hover { background: rgba(255,255,255,.18); }
+.playground-cta { display: block; margin-top: 12px; text-align: center; }
 
 .file-list { list-style: none; margin: 0; padding: 0; }
 .file-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 5px 0; font-size: 13.5px; }

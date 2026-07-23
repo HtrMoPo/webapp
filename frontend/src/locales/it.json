@@ -83,7 +83,8 @@
     "obsoletedBy": "Sostituito da",
     "variants": "Variante/i",
     "variantOf": "Variante di",
-    "relatedPapers": "Articolo/i correlato/i"
+    "relatedPapers": "Articolo/i correlato/i",
+    "tryPlayground": "Prova nel playground"
   },
   "form": {
     "titleNew": "Documenta un nuovo modello",
@@ -172,8 +173,37 @@
     "save": "Salva",
     "add": "Aggiungi",
     "remove": "Rimuovi",
+    "optional": "opzionale",
     "language_en": "Inglese",
     "language_fr": "Francese",
     "language": "Lingua"
+  },
+  "playground": {
+    "title": "Playground",
+    "subtitle": "Prova",
+    "segmentationModel": "Modello di segmentazione",
+    "recognitionModel": "Modello di riconoscimento del testo",
+    "regionModel": "Modello di regioni (D-Fine)",
+    "selectModel": "Seleziona un modello…",
+    "none": "Nessuno",
+    "direction": "Direzione del testo",
+    "ltr": "Sinistra a destra",
+    "rtl": "Destra a sinistra",
+    "image": "Immagine",
+    "dropImage": "Trascina un'immagine qui, o clicca per sceglierla",
+    "run": "Avvia",
+    "queued": "In coda — posizione {position}",
+    "running": "Elaborazione dell'immagine…",
+    "recognizedText": "Testo riconosciuto",
+    "resetZoom": "Ripristina",
+    "font": "Carattere",
+    "fontDefault": "Predefinito",
+    "regions": "Regioni rilevate",
+    "needImage": "Seleziona prima un'immagine.",
+    "needModels": "Seleziona un modello di segmentazione e uno di riconoscimento.",
+    "submitFailed": "Impossibile inviare l'operazione.",
+    "rateLimitExceeded": "Hai raggiunto il limite di richieste del playground per ora — riprova più tardi.",
+    "queueFull": "La coda del playground è piena in questo momento — riprova tra qualche minuto.",
+    "unknownError": "Si è verificato un errore durante l'elaborazione di questa immagine."
   }
 }

@@ -83,7 +83,8 @@
     "obsoletedBy": "Superseded by",
     "variants": "Variant(s)",
     "variantOf": "Variant of",
-    "relatedPapers": "Related paper(s)"
+    "relatedPapers": "Related paper(s)",
+    "tryPlayground": "Try in playground"
   },
   "form": {
     "titleNew": "Document a new model",
@@ -172,8 +173,37 @@
     "save": "Save",
     "add": "Add",
     "remove": "Remove",
+    "optional": "optional",
     "language_en": "English",
     "language_fr": "French",
     "language": "Language"
+  },
+  "playground": {
+    "title": "Playground",
+    "subtitle": "Try",
+    "segmentationModel": "Segmentation model",
+    "recognitionModel": "Text recognition model",
+    "regionModel": "Region model (D-Fine)",
+    "selectModel": "Select a model…",
+    "none": "None",
+    "direction": "Text direction",
+    "ltr": "Left to right",
+    "rtl": "Right to left",
+    "image": "Image",
+    "dropImage": "Drop an image here, or click to browse",
+    "run": "Run",
+    "queued": "Queued — position {position} in line",
+    "running": "Processing your image…",
+    "recognizedText": "Recognized text",
+    "resetZoom": "Reset",
+    "font": "Font",
+    "fontDefault": "Default",
+    "regions": "Detected regions",
+    "needImage": "Please choose an image first.",
+    "needModels": "Please select a segmentation and a recognition model.",
+    "submitFailed": "Could not submit the job.",
+    "rateLimitExceeded": "You've reached the limit of playground requests for now — please try again later.",
+    "queueFull": "The playground queue is full right now — please try again in a few minutes.",
+    "unknownError": "Something went wrong while processing this image."
   }
 }
