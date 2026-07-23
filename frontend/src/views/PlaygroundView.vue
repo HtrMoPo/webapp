@@ -197,6 +197,19 @@ const flatRegions = computed(() => {
   }
   return list
 })
+
+// Anchor point for the little "line number" bubble shown on hover --
+// placed at the topmost point of the hovered line's polygon (falling back
+// to its baseline) so it reads as pointing at that specific line rather
+// than floating in the middle of the image.
+const hoveredLineAnchor = computed(() => {
+  if (hoveredLine.value === null) return null
+  const line = result.value?.lines?.[hoveredLine.value]
+  const points = line?.boundary?.length ? line.boundary : line?.baseline
+  if (!points?.length) return null
+  const top = points.reduce((best, p) => (p[1] < best[1] ? p : best), points[0])
+  return { x: top[0], y: top[1] - 4 }
+})
 </script>
 
 <template>
@@ -289,6 +302,11 @@ const flatRegions = computed(() => {
               @mouseenter="hoveredLine = i"
               @mouseleave="hoveredLine = null"
             ><title>{{ line.text }}</title></polygon>
+
+            <g v-if="hoveredLineAnchor" class="playground-line-badge" style="pointer-events: none">
+              <circle :cx="hoveredLineAnchor.x" :cy="hoveredLineAnchor.y" r="16" />
+              <text :x="hoveredLineAnchor.x" :y="hoveredLineAnchor.y" dominant-baseline="central" text-anchor="middle">{{ hoveredLine + 1 }}</text>
+            </g>
           </svg>
         </div>
 
@@ -358,12 +376,15 @@ const flatRegions = computed(() => {
 }
 .playground-line.is-hovered { fill: rgba(199, 90, 60, .38); stroke-width: 4; }
 
-.playground-region { fill: none; stroke-width: 2.5; stroke-dasharray: 6 4; opacity: .8; }
+.playground-region { fill: none; stroke-width: 5; stroke-dasharray: 9 6; opacity: .85; }
+
+.playground-line-badge circle { fill: var(--ink); stroke: var(--paper); stroke-width: 2; }
+.playground-line-badge text { fill: var(--paper); font-size: 15px; font-weight: 700; font-family: var(--sans); }
 
 .playground-side { display: flex; flex-direction: column; gap: 16px; }
 .playground-lines ol { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; }
-.playground-lines li { border-radius: 4px; padding: 1px 4px; margin: 0 -4px; cursor: default; transition: background .1s; }
-.playground-lines li.is-hovered { background: var(--olive-tint-2); }
+.playground-lines li { border-radius: 4px; padding: 2px 6px; margin: 0 -6px; cursor: default; transition: background .1s, box-shadow .1s; }
+.playground-lines li.is-hovered { background: var(--olive-tint); box-shadow: inset 3px 0 0 var(--olive); font-weight: 600; }
 
 .playground-region-legend ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .playground-region-legend li { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
