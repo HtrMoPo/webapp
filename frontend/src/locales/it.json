@@ -198,6 +198,8 @@
     "needImage": "Seleziona prima un'immagine.",
     "needModels": "Seleziona un modello di segmentazione e uno di riconoscimento.",
     "submitFailed": "Impossibile inviare l'operazione.",
+    "rateLimitExceeded": "Hai raggiunto il limite di richieste del playground per ora — riprova più tardi.",
+    "queueFull": "La coda del playground è piena in questo momento — riprova tra qualche minuto.",
     "unknownError": "Si è verificato un errore durante l'elaborazione di questa immagine."
   }
 }

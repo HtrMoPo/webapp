@@ -166,7 +166,11 @@ async function submit() {
     queuePosition.value = res.queue_position
     poll(res.id)
   } catch (e) {
-    submitError.value = e.message || t('playground.submitFailed')
+    const KNOWN_ERRORS = {
+      rate_limit_exceeded: t('playground.rateLimitExceeded'),
+      queue_full: t('playground.queueFull'),
+    }
+    submitError.value = KNOWN_ERRORS[e.message] || e.message || t('playground.submitFailed')
   } finally {
     submitting.value = false
   }

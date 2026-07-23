@@ -198,6 +198,8 @@
     "needImage": "Please choose an image first.",
     "needModels": "Please select a segmentation and a recognition model.",
     "submitFailed": "Could not submit the job.",
+    "rateLimitExceeded": "You've reached the limit of playground requests for now — please try again later.",
+    "queueFull": "The playground queue is full right now — please try again in a few minutes.",
     "unknownError": "Something went wrong while processing this image."
   }
 }

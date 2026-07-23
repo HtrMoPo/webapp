@@ -1,36 +1,40 @@
 """Runs kraken (segmentation + recognition, optionally with a D-Fine region
-model) by shelling out to the `kraken` CLI, rather than calling internal
-kraken/dfine_kraken Python APIs directly.
+model) via kraken's internal Python API (kraken.tasks.*TaskModel), rather
+than shelling out to the `kraken` CLI.
 
-Verified against kraken 7.0.2 + dfine_kraken 0.4.2 (2026-07-23):
-  kraken --threads N -d cpu -a -i IN OUT \
-      segment -bl -i SEG_MODEL [-i REGION_MODEL] -d TEXT_DIRECTION \
-      ocr -m RECO_MODEL
+Verified against a real kraken 7.0.2 + dfine_kraken 0.4.2 install
+(2026-07-23) by loading real models and inspecting the actual objects
+returned -- notably:
 
-- `-bl`/`--baseline` selects the neural baseline segmenter (blla-style
-  models); the default is the legacy box segmenter, which is not what
-  published .mlmodel baseline models expect.
-- `segment -i` can be repeated: kraken merges a baseline-detection model
-  (blla.mlmodel) with a region-only detection model (a D-Fine
-  .safetensors, loaded via dfine_kraken's `kraken.models` plugin entry
-  point) rather than requiring a special combined model.
-- `-a` (ALTO output) is used instead of the default "native" output
-  because native output means JSON for a bare `segment` but plain text
-  (no coordinates at all) once `ocr` is chained on -- ALTO is the only
-  built-in format that keeps both per-line text and geometry after a
-  combined segment+ocr run. Chaining `segment`+`ocr` in one process (mn a
-  single kraken invocation) also avoids re-loading the segmentation
-  model just to hand off to a second process.
-- No `ketos convert` step is needed for D-Fine models: pretrained ones
-  published to Zenodo are already inference-ready .safetensors files,
-  used directly with `segment -i`.
+- `SegmentationTaskModel.load_model(path)` / `RecognitionTaskModel.load_model(path)`
+  each load from a SINGLE file. The CLI's `segment -i` looks pluralized
+  ("Baseline/region detection model(s) to use") but the underlying click
+  option is not `multiple=True` and `load_model` takes one path -- there is
+  no supported way to merge a separate baseline (blla) model with a
+  separate D-Fine region model in one segmentation pass. A D-Fine region
+  model (per dfine_kraken's own README: "The default configuration trains
+  lines and regions jointly") is a complete, standalone replacement for the
+  plain segmentation model, not an add-on to it -- so when one is given
+  here it's used *instead of* the segmentation model, not alongside it.
+- The recognized text on each predicted line lives on a `.prediction`
+  property (backed by a private `_prediction` attribute), NOT on the
+  dataclass's own `text` field -- `dataclasses.asdict()` on a prediction
+  silently gives `text: None`. The JSON below is therefore built by hand
+  from `.prediction`/`.baseline`/`.boundary` rather than via `asdict()`.
+
+Known limitation versus the previous subprocess-based implementation: this
+runs in-process via a thread executor. A timeout here abandons the
+executor thread rather than killing a subprocess -- the underlying kraken
+call keeps consuming CPU in the background until it finishes on its own,
+since CPython threads can't be forcibly stopped. Acceptable given the
+runner only ever has one job in flight at a time, but worth knowing if
+this is ever changed.
 """
 
 import asyncio
-import xml.etree.ElementTree as ET
+import dataclasses
+import functools
 from pathlib import Path
-
-_ALTO_NS = {"a": "http://www.loc.gov/standards/alto/ns-v4#"}
 
 _DIRECTION_MAP = {
     "ltr": "horizontal-lr",
@@ -42,59 +46,53 @@ class InferenceError(Exception):
     pass
 
 
-def _parse_alto(xml_path: Path) -> dict:
-    tree = ET.parse(xml_path)
-    root = tree.getroot()
+def _region_boundary(region) -> list | None:
+    boundary = getattr(region, "boundary", None)
+    return [list(p) for p in boundary] if boundary else None
 
-    page = root.find(".//a:Page", _ALTO_NS)
-    width = int(page.get("WIDTH")) if page is not None else None
-    height = int(page.get("HEIGHT")) if page is not None else None
 
-    # TextBlock/TextLine reference a tag by ID (e.g. TAGREFS="TYPE_2"); the
-    # human-readable region/line type ("text", "default", ...) is only
-    # available indirectly via <Tags><OtherTag ID=... LABEL=.../></Tags>.
-    tag_labels = {
-        tag.get("ID"): tag.get("LABEL")
-        for tag in root.findall(".//a:Tags/a:OtherTag", _ALTO_NS)
-        if tag.get("ID")
-    }
+def _run_sync(
+    image_path: Path,
+    segmentation_model_path: Path,
+    recognition_model_path: Path,
+    region_model_path: Path | None,
+    direction: str,
+    threads: int,
+) -> dict:
+    from kraken.configs import RecognitionInferenceConfig, SegmentationInferenceConfig
+    from kraken.lib.util import open_image
+    from kraken.tasks import RecognitionTaskModel, SegmentationTaskModel
 
-    def polygon_points(shape_el):
-        if shape_el is None:
-            return None
-        poly = shape_el.find("a:Polygon", _ALTO_NS)
-        if poly is None or not poly.get("POINTS"):
-            return None
-        coords = [int(round(float(v))) for v in poly.get("POINTS").split()]
-        return [[coords[i], coords[i + 1]] for i in range(0, len(coords), 2)]
+    im = open_image(str(image_path))
+    text_direction = _DIRECTION_MAP[direction]
 
-    def baseline_points(text_line_el):
-        raw = text_line_el.get("BASELINE")
-        if not raw:
-            return None
-        coords = [int(round(float(v))) for v in raw.split()]
-        return [[coords[i], coords[i + 1]] for i in range(0, len(coords), 2)]
+    # See module docstring: a region model replaces the segmentation model
+    # rather than combining with it.
+    seg_path = region_model_path or segmentation_model_path
+    seg_model = SegmentationTaskModel.load_model(str(seg_path))
+    seg_config = SegmentationInferenceConfig(text_direction=text_direction, num_threads=threads)
+    segmentation = seg_model.predict(im=im, config=seg_config)
+
+    reco_model = RecognitionTaskModel.load_model(str(recognition_model_path))
+    reco_config = RecognitionInferenceConfig(num_threads=threads)
+    predictions = list(reco_model.predict(im=im, segmentation=segmentation, config=reco_config))
+
+    lines = [
+        {
+            "text": pred.prediction,
+            "baseline": [list(p) for p in pred.baseline] if pred.baseline else None,
+            "boundary": [list(p) for p in pred.boundary] if pred.boundary else None,
+        }
+        for pred in predictions
+    ]
 
     regions = {}
-    for block in root.findall(".//a:TextBlock", _ALTO_NS):
-        region_type = tag_labels.get(block.get("TAGREFS")) or block.get("TAGREFS") or "region"
-        boundary = polygon_points(block.find("a:Shape", _ALTO_NS))
-        if boundary:
-            regions.setdefault(region_type, []).append(boundary)
+    for region_type, region_list in (segmentation.regions or {}).items():
+        boundaries = [b for r in region_list if (b := _region_boundary(r))]
+        if boundaries:
+            regions[region_type] = boundaries
 
-    lines = []
-    for text_line in root.findall(".//a:TextLine", _ALTO_NS):
-        strings = text_line.findall("a:String", _ALTO_NS)
-        text = " ".join(s.get("CONTENT", "") for s in strings)
-        lines.append(
-            {
-                "text": text,
-                "baseline": baseline_points(text_line),
-                "boundary": polygon_points(text_line.find("a:Shape", _ALTO_NS)),
-            }
-        )
-
-    return {"image_size": [width, height], "lines": lines, "regions": regions}
+    return {"direction": direction, "image_size": list(im.size), "lines": lines, "regions": regions}
 
 
 async def run_pipeline(
@@ -106,34 +104,19 @@ async def run_pipeline(
     threads: int,
     timeout_seconds: int,
 ) -> dict:
-    text_direction = _DIRECTION_MAP[direction]
-    output_path = image_path.with_suffix(".alto.xml")
-
-    cmd = [
-        "kraken",
-        "--threads", str(threads),
-        "-d", "cpu",
-        "-a",
-        "-i", str(image_path), str(output_path),
-        "segment", "-bl", "-i", str(segmentation_model_path),
-    ]
-    if region_model_path is not None:
-        cmd += ["-i", str(region_model_path)]
-    cmd += ["-d", text_direction, "ocr", "-m", str(recognition_model_path)]
-
-    proc = await asyncio.create_subprocess_exec(
-        *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT
+    loop = asyncio.get_running_loop()
+    call = functools.partial(
+        _run_sync,
+        image_path,
+        segmentation_model_path,
+        recognition_model_path,
+        region_model_path,
+        direction,
+        threads,
     )
     try:
-        stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=timeout_seconds)
-    except asyncio.TimeoutError:
-        proc.kill()
-        await proc.wait()
-        raise InferenceError(f"kraken timed out after {timeout_seconds}s")
-
-    if proc.returncode != 0 or not output_path.exists():
-        raise InferenceError(f"kraken exited {proc.returncode}: {stdout.decode(errors='replace')[-4000:]}")
-
-    result = _parse_alto(output_path)
-    result["direction"] = direction
-    return result
+        return await asyncio.wait_for(loop.run_in_executor(None, call), timeout=timeout_seconds)
+    except asyncio.TimeoutError as exc:
+        raise InferenceError(f"kraken timed out after {timeout_seconds}s") from exc
+    except Exception as exc:
+        raise InferenceError(str(exc)) from exc

@@ -198,6 +198,8 @@
     "needImage": "Veuillez d'abord choisir une image.",
     "needModels": "Veuillez sélectionner un modèle de segmentation et un modèle de reconnaissance.",
     "submitFailed": "Impossible de soumettre la tâche.",
+    "rateLimitExceeded": "Vous avez atteint la limite de requêtes pour le moment — veuillez réessayer plus tard.",
+    "queueFull": "La file d'attente du bac à sable est pleine — veuillez réessayer dans quelques minutes.",
     "unknownError": "Une erreur est survenue lors du traitement de cette image."
   }
 }

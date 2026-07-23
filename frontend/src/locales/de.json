@@ -198,6 +198,8 @@
     "needImage": "Bitte wählen Sie zuerst ein Bild aus.",
     "needModels": "Bitte wählen Sie ein Segmentierungs- und ein Erkennungsmodell aus.",
     "submitFailed": "Der Auftrag konnte nicht übermittelt werden.",
+    "rateLimitExceeded": "Sie haben das Anfragelimit für den Playground erreicht — bitte versuchen Sie es später erneut.",
+    "queueFull": "Die Playground-Warteschlange ist derzeit voll — bitte versuchen Sie es in einigen Minuten erneut.",
     "unknownError": "Bei der Verarbeitung dieses Bildes ist ein Fehler aufgetreten."
   }
 }
