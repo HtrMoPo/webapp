@@ -37,10 +37,10 @@ function zoomIn() { zoom.value = Math.min(ZOOM_MAX, +(zoom.value + 0.25).toFixed
 function zoomOut() { zoom.value = Math.max(ZOOM_MIN, +(zoom.value - 0.25).toFixed(2)) }
 function zoomReset() { zoom.value = 1 }
 function onCanvasWheel(e) {
-  // Ctrl+wheel (or pinch-zoom, which browsers report as ctrlKey wheel
-  // events) zooms the image; a plain wheel still scrolls the page/viewport
-  // normally instead of hijacking every scroll over the image.
-  if (!e.ctrlKey) return
+  // Plain wheel zooms the image (no modifier needed) -- this claims
+  // scrolling over the image for zoom rather than page/viewport scroll;
+  // once zoomed in, the viewport's scrollbars (or dragging them) are what
+  // pans around, not the wheel.
   e.preventDefault()
   zoom.value = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, +(zoom.value + (e.deltaY > 0 ? -0.15 : 0.15)).toFixed(2)))
 }
@@ -419,7 +419,15 @@ const hoveredLineAnchor = computed(() => {
 }
 
 .playground-canvas-viewport {
-  position: relative; overflow: auto; flex: 1; min-height: 500px; max-height: 78vh;
+  /* A fixed viewport-relative height (rather than sizing to the image's own
+     intrinsic height via flex-grow) keeps this deterministic -- a
+     flex:1 child inside a CSS Grid row whose own height comes from
+     align-items:stretch is a genuinely ambiguous sizing case across
+     browsers once the image's aspect ratio varies, and in practice never
+     reliably matched the text column's height. Tying it to the viewport
+     (page) height instead means both columns always end up the same,
+     generous height regardless of what image is loaded. */
+  position: relative; overflow: auto; height: 70vh;
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper-2);
 }
 .playground-canvas { position: relative; }
