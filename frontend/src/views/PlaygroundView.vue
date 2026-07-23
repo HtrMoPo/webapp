@@ -30,6 +30,20 @@ const direction = ref('ltr')
 const imageFile = ref(null)
 const imagePreviewUrl = ref('')
 const imageNaturalSize = ref(null)
+const zoom = ref(1)
+const ZOOM_MIN = 1
+const ZOOM_MAX = 4
+function zoomIn() { zoom.value = Math.min(ZOOM_MAX, +(zoom.value + 0.25).toFixed(2)) }
+function zoomOut() { zoom.value = Math.max(ZOOM_MIN, +(zoom.value - 0.25).toFixed(2)) }
+function zoomReset() { zoom.value = 1 }
+function onCanvasWheel(e) {
+  // Ctrl+wheel (or pinch-zoom, which browsers report as ctrlKey wheel
+  // events) zooms the image; a plain wheel still scrolls the page/viewport
+  // normally instead of hijacking every scroll over the image.
+  if (!e.ctrlKey) return
+  e.preventDefault()
+  zoom.value = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, +(zoom.value + (e.deltaY > 0 ? -0.15 : 0.15)).toFixed(2)))
+}
 
 const submitting = ref(false)
 const submitError = ref('')
@@ -114,6 +128,7 @@ function setImageFile(file) {
   imagePreviewUrl.value = URL.createObjectURL(file)
   imageNaturalSize.value = null
   result.value = null
+  zoom.value = 1
 }
 function onPreviewLoad(e) {
   imageNaturalSize.value = { width: e.target.naturalWidth, height: e.target.naturalHeight }
@@ -291,36 +306,46 @@ const hoveredLineAnchor = computed(() => {
       <p class="playground-error" v-else-if="jobStatus === 'error'">{{ jobError }}</p>
 
       <div v-if="imagePreviewUrl" class="playground-output">
-        <div class="playground-canvas">
-          <img :src="imagePreviewUrl" @load="onPreviewLoad" alt="" />
-          <svg
-            v-if="result && imageNaturalSize"
-            class="playground-overlay"
-            :viewBox="`0 0 ${imageNaturalSize.width} ${imageNaturalSize.height}`"
-            preserveAspectRatio="xMidYMid meet"
-          >
-            <polygon
-              v-for="(region, i) in flatRegions"
-              :key="`region-${i}`"
-              :points="polygonPoints(region.boundary)"
-              class="playground-region"
-              :style="{ stroke: regionColor(region.type) }"
-            />
-            <polygon
-              v-for="(line, i) in result.lines"
-              :key="i"
-              :points="polygonPoints(line.boundary)"
-              class="playground-line"
-              :class="{ 'is-hovered': hoveredLine === i }"
-              @mouseenter="hoveredLine = i"
-              @mouseleave="hoveredLine = null"
-            ><title>{{ line.text }}</title></polygon>
+        <div class="playground-canvas-col">
+          <div class="playground-zoom-controls">
+            <button type="button" class="playground-zoom-btn" :disabled="zoom <= ZOOM_MIN" @click="zoomOut">&minus;</button>
+            <span class="playground-zoom-level">{{ Math.round(zoom * 100) }}%</span>
+            <button type="button" class="playground-zoom-btn" :disabled="zoom >= ZOOM_MAX" @click="zoomIn">+</button>
+            <button type="button" class="playground-zoom-reset" v-if="zoom !== 1" @click="zoomReset">{{ t('playground.resetZoom') }}</button>
+          </div>
+          <div class="playground-canvas-viewport" @wheel="onCanvasWheel">
+            <div class="playground-canvas" :style="{ width: zoom * 100 + '%' }">
+              <img :src="imagePreviewUrl" @load="onPreviewLoad" alt="" />
+              <svg
+                v-if="result && imageNaturalSize"
+                class="playground-overlay"
+                :viewBox="`0 0 ${imageNaturalSize.width} ${imageNaturalSize.height}`"
+                preserveAspectRatio="xMidYMid meet"
+              >
+                <polygon
+                  v-for="(region, i) in flatRegions"
+                  :key="`region-${i}`"
+                  :points="polygonPoints(region.boundary)"
+                  class="playground-region"
+                  :style="{ stroke: regionColor(region.type) }"
+                />
+                <polygon
+                  v-for="(line, i) in result.lines"
+                  :key="i"
+                  :points="polygonPoints(line.boundary)"
+                  class="playground-line"
+                  :class="{ 'is-hovered': hoveredLine === i }"
+                  @mouseenter="hoveredLine = i"
+                  @mouseleave="hoveredLine = null"
+                ><title>{{ line.text }}</title></polygon>
 
-            <g v-if="hoveredLineAnchor" class="playground-line-badge" style="pointer-events: none">
-              <circle :cx="hoveredLineAnchor.x" :cy="hoveredLineAnchor.y" r="16" />
-              <text :x="hoveredLineAnchor.x" :y="hoveredLineAnchor.y" dominant-baseline="central" text-anchor="middle">{{ hoveredLine + 1 }}</text>
-            </g>
-          </svg>
+                <g v-if="hoveredLineAnchor" class="playground-line-badge" style="pointer-events: none">
+                  <circle :cx="hoveredLineAnchor.x" :cy="hoveredLineAnchor.y" r="16" />
+                  <text :x="hoveredLineAnchor.x" :y="hoveredLineAnchor.y" dominant-baseline="central" text-anchor="middle">{{ hoveredLine + 1 }}</text>
+                </g>
+              </svg>
+            </div>
+          </div>
         </div>
 
         <div v-if="result" class="playground-side">
@@ -378,9 +403,27 @@ const hoveredLineAnchor = computed(() => {
   font-size: 13.5px;
 }
 
-.playground-output { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; }
-.playground-canvas { position: relative; max-width: 100%; }
-.playground-canvas img { max-width: 100%; display: block; border-radius: var(--radius); border: 1px solid var(--line); }
+.playground-output { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: stretch; }
+
+.playground-canvas-col { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.playground-zoom-controls { display: flex; align-items: center; gap: 8px; }
+.playground-zoom-btn {
+  width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--line-2);
+  background: var(--surface); color: var(--ink-2); font-size: 16px; line-height: 1; cursor: pointer;
+}
+.playground-zoom-btn:hover:not(:disabled) { background: var(--paper-2); color: var(--ink); }
+.playground-zoom-btn:disabled { opacity: .4; cursor: default; }
+.playground-zoom-level { font-size: 12.5px; color: var(--ink-3); min-width: 40px; text-align: center; }
+.playground-zoom-reset {
+  font-size: 12px; font-weight: 600; color: var(--accent); background: none; border: none; cursor: pointer; padding: 0 4px;
+}
+
+.playground-canvas-viewport {
+  position: relative; overflow: auto; flex: 1; min-height: 500px; max-height: 78vh;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper-2);
+}
+.playground-canvas { position: relative; }
+.playground-canvas img { width: 100%; display: block; }
 .playground-overlay { position: absolute; inset: 0; width: 100%; height: 100%; }
 
 .playground-line {
@@ -404,6 +447,7 @@ const hoveredLineAnchor = computed(() => {
   color: var(--ink); margin: 0 0 14px; padding-bottom: 10px;
   border-bottom: 1px solid var(--line); letter-spacing: -.01em;
 }
+.playground-lines { flex: 1; }
 .playground-lines ol { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; }
 .playground-lines li { border-radius: 4px; padding: 2px 6px; margin: 0 -6px; cursor: default; transition: background .1s, box-shadow .1s; }
 .playground-lines li.is-hovered { background: var(--olive-tint); box-shadow: inset 3px 0 0 var(--olive); font-weight: 600; }

@@ -195,6 +195,7 @@
     "queued": "En attente — position {position} dans la file",
     "running": "Traitement de votre image…",
     "recognizedText": "Texte reconnu",
+    "resetZoom": "Réinitialiser",
     "regions": "Régions détectées",
     "needImage": "Veuillez d'abord choisir une image.",
     "needModels": "Veuillez sélectionner un modèle de segmentation et un modèle de reconnaissance.",
