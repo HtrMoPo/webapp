@@ -68,6 +68,14 @@ def _run_sync(
     from kraken.tasks import RecognitionTaskModel, SegmentationTaskModel
 
     im = open_image(str(image_path))
+    # party's (PartyModel) image transforms normalize with a hardcoded
+    # 3-channel mean/std and never convert the image themselves, so an
+    # uploaded image with an alpha channel (e.g. RGBA PNG) or in another
+    # mode (L, P, ...) crashes inside torchvision's Normalize with a
+    # channel-count mismatch. Converting once here upfront is cheaper than
+    # threading a per-model fix through every recognition architecture.
+    if im.mode != "RGB":
+        im = im.convert("RGB")
     text_direction = _DIRECTION_MAP[direction]
 
     seg_models = load_models(str(segmentation_model_path))

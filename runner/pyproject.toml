@@ -15,6 +15,14 @@ dependencies = [
     # of this file did not exist on PyPI.
     "kraken~=7.0.2",
     "dfine_kraken~=0.4.2",
+    # mittagessen/party registers `PartyModel` under the same `kraken.models`
+    # entry point mechanism as dfine_kraken above -- needed to load any
+    # recognition model file whose kraken_meta names that architecture.
+    # There is NO usable PyPI release: "party" on PyPI is an unrelated
+    # Artifactory API client, and the party project itself has never cut a
+    # tagged release, so this installs straight from GitHub, pinned to the
+    # latest commit on main as of 2026-07-23.
+    "party @ git+https://github.com/mittagessen/party.git@c2589b1b515ed690f883c6afaef6c01ce29bf72d",
 ]
 
 [build-system]

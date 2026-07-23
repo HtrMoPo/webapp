@@ -6,11 +6,21 @@ from pathlib import Path
 
 from fastapi import FastAPI, Form, HTTPException, UploadFile
 
+import os
+
 from app import cache
 from app.inference import InferenceError, run_pipeline
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
+
+# party (see app.inference) is a Swin/transformer + LLM-decoder recognizer,
+# generating tokens autoregressively per line rather than the single
+# forward pass classic kraken CTC recognizers use -- on CPU this is easily
+# an order of magnitude slower per line, so the old fixed 240s here was
+# only ever enough for small pages. Configurable so it can be tuned per
+# deployment/model mix without a code change.
+_INFERENCE_TIMEOUT_SECONDS = int(os.environ.get("INFERENCE_TIMEOUT_SECONDS", "240"))
 
 app = FastAPI(title="HTRMoPo Playground Runner")
 
@@ -65,7 +75,7 @@ async def run(
                     region_path,
                     direction,
                     threads=int(threads.RUNNER_THREADS),
-                    timeout_seconds=240,
+                    timeout_seconds=_INFERENCE_TIMEOUT_SECONDS,
                 )
             except InferenceError:
                 logger.exception("kraken pipeline failed")
