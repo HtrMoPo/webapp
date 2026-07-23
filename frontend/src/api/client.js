@@ -77,4 +77,9 @@ export const api = {
     return request('/playground/jobs', { method: 'POST', body: form })
   },
   playgroundJob: (id) => request(`/playground/jobs/${id}`),
+
+  playgroundAdminJobs: () => request('/playground/admin/jobs'),
+  playgroundAdminJob: (id) => request(`/playground/admin/jobs/${id}`),
+  cancelPlaygroundJob: (id) => request(`/playground/admin/jobs/${id}`, { method: 'DELETE' }),
+  clearPlaygroundQueue: () => request('/playground/admin/queue/clear', { method: 'POST' }),
 }

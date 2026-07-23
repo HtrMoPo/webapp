@@ -25,6 +25,7 @@ const routes = [
     props: (route) => ({ recordId: Number(route.params.recordId) }),
   },
   { path: '/mine', name: 'my-models', component: () => import('./views/MyModelsView.vue') },
+  { path: '/admin/playground', name: 'playground-admin', component: () => import('./views/PlaygroundAdminView.vue') },
   { path: '/login', name: 'login', component: () => import('./views/LoginView.vue') },
 ]
 

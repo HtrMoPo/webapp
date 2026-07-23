@@ -4,7 +4,8 @@
     "myModels": "Mes modèles",
     "upload": "Déposer un modèle",
     "login": "Se connecter avec Zenodo",
-    "logout": "Se déconnecter"
+    "logout": "Se déconnecter",
+    "playgroundAdmin": "File du bac à sable"
   },
   "home": {
     "title": "Documenter et publier des modèles <span class=\"accent\">Kraken</span>",
@@ -194,6 +195,7 @@
     "run": "Lancer",
     "queued": "En attente — position {position} dans la file",
     "running": "Traitement de votre image…",
+    "runningWarning": "Certains modèles sont plus lents que d'autres (par exemple, party peut prendre environ 10 minutes par page sur ce serveur de démonstration) — ceci est un bac à sable. Quitter la page et soumettre à nouveau remettra simplement votre requête en file d'attente, et le nombre de pages par heure est limité.",
     "recognizedText": "Texte reconnu",
     "resetZoom": "Réinitialiser",
     "font": "Police",
@@ -205,5 +207,22 @@
     "rateLimitExceeded": "Vous avez atteint la limite de requêtes pour le moment — veuillez réessayer plus tard.",
     "queueFull": "La file d'attente du bac à sable est pleine — veuillez réessayer dans quelques minutes.",
     "unknownError": "Une erreur est survenue lors du traitement de cette image."
+  },
+  "playgroundAdmin": {
+    "title": "File du bac à sable",
+    "queue": "File d'attente",
+    "queueEmpty": "Aucune tâche en attente ou en cours.",
+    "recentFinished": "Terminées récemment",
+    "recentFinishedEmpty": "Aucune tâche terminée pour le moment.",
+    "clearQueue": "Vider la file d'attente",
+    "cancel": "Annuler",
+    "remove": "Supprimer",
+    "viewResult": "Voir le résultat",
+    "hideResult": "Masquer le résultat",
+    "status": "Statut",
+    "created": "Créée",
+    "finished": "Terminée",
+    "models": "Modèles",
+    "ip": "Hash IP"
   }
 }

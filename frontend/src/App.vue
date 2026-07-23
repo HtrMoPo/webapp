@@ -29,6 +29,7 @@ async function logout() {
         <router-link to="/catalog">{{ t('nav.catalog') }}</router-link>
         <router-link v-if="auth.authenticated" to="/mine">{{ t('nav.myModels') }}</router-link>
         <router-link v-if="auth.authenticated" to="/upload">{{ t('nav.upload') }}</router-link>
+        <router-link v-if="auth.isAdmin" to="/admin/playground">{{ t('nav.playgroundAdmin') }}</router-link>
       </nav>
       <select class="lang-toggle" :value="locale" @change="setLocale($event.target.value)" :aria-label="t('common.language')">
         <option v-for="code in SUPPORTED_LOCALES" :key="code" :value="code">{{ localeNames[code] }}</option>

@@ -248,3 +248,87 @@ class TestCleanup:
         assert old_done.id not in remaining_ids
         assert recent_done.id in remaining_ids
         assert old_queued.id in remaining_ids
+
+
+class _FakeAdmin:
+    is_admin = True
+
+
+class TestAdminEndpoints:
+    async def test_list_jobs_splits_active_and_recent_finished(self, playground_db_session, db_session):
+        await _seed_model(db_session)
+        queued = await _submit(playground_db_session, db_session, request=FakeRequest("1.1.1.1"))
+        done_job = PlaygroundJob(
+            ip_hash="x", status="done", direction="ltr",
+            segmentation_doi="d", segmentation_filename="f",
+            recognition_doi="d", recognition_filename="f",
+            image_bytes=b"x",
+        )
+        playground_db_session.add(done_job)
+        await playground_db_session.commit()
+
+        result = await playground_router.admin_list_jobs(db=playground_db_session, _admin=_FakeAdmin())
+        assert [j["id"] for j in result["active"]] == [queued["id"]]
+        assert [j["status"] for j in result["recent_finished"]] == ["done"]
+
+    async def test_get_job_includes_parsed_result(self, playground_db_session):
+        done_job = PlaygroundJob(
+            ip_hash="x", status="done", direction="ltr",
+            segmentation_doi="d", segmentation_filename="f",
+            recognition_doi="d", recognition_filename="f",
+            image_bytes=b"x",
+            result_json='{"lines": [{"text": "hello"}]}',
+        )
+        playground_db_session.add(done_job)
+        await playground_db_session.commit()
+        await playground_db_session.refresh(done_job)
+
+        result = await playground_router.admin_get_job(done_job.public_id, db=playground_db_session, _admin=_FakeAdmin())
+        assert result["result"] == {"lines": [{"text": "hello"}]}
+        assert result["status"] == "done"
+
+    async def test_get_job_unknown_404s(self, playground_db_session):
+        with pytest.raises(HTTPException) as exc:
+            await playground_router.admin_get_job("does-not-exist", db=playground_db_session, _admin=_FakeAdmin())
+        assert exc.value.status_code == 404
+
+    async def test_cancel_removes_job(self, playground_db_session, db_session):
+        await _seed_model(db_session)
+        queued = await _submit(playground_db_session, db_session, request=FakeRequest("1.1.1.1"))
+
+        result = await playground_router.admin_cancel_job(queued["id"], db=playground_db_session, _admin=_FakeAdmin())
+        assert result == {"cancelled": queued["id"]}
+
+        from sqlalchemy import select
+
+        remaining = (await playground_db_session.execute(select(PlaygroundJob))).scalars().all()
+        assert remaining == []
+
+    async def test_cancel_unknown_job_404s(self, playground_db_session):
+        with pytest.raises(HTTPException) as exc:
+            await playground_router.admin_cancel_job("does-not-exist", db=playground_db_session, _admin=_FakeAdmin())
+        assert exc.value.status_code == 404
+
+    async def test_clear_queue_only_removes_queued_not_running(self, playground_db_session):
+        queued = PlaygroundJob(
+            ip_hash="x", status="queued", direction="ltr",
+            segmentation_doi="d", segmentation_filename="f",
+            recognition_doi="d", recognition_filename="f",
+            image_bytes=b"x",
+        )
+        running = PlaygroundJob(
+            ip_hash="x", status="running", direction="ltr",
+            segmentation_doi="d", segmentation_filename="f",
+            recognition_doi="d", recognition_filename="f",
+            image_bytes=b"x",
+        )
+        playground_db_session.add_all([queued, running])
+        await playground_db_session.commit()
+
+        result = await playground_router.admin_clear_queue(db=playground_db_session, _admin=_FakeAdmin())
+        assert result == {"cancelled": 1}
+
+        from sqlalchemy import select
+
+        remaining = (await playground_db_session.execute(select(PlaygroundJob))).scalars().all()
+        assert [j.status for j in remaining] == ["running"]

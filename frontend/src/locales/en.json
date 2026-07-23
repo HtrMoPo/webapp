@@ -4,7 +4,8 @@
     "myModels": "My models",
     "upload": "Upload a model",
     "login": "Connect with Zenodo",
-    "logout": "Log out"
+    "logout": "Log out",
+    "playgroundAdmin": "Playground queue"
   },
   "home": {
     "title": "Document & publish <span class=\"accent\">Kraken</span> models",
@@ -194,6 +195,7 @@
     "run": "Run",
     "queued": "Queued — position {position} in line",
     "running": "Processing your image…",
+    "runningWarning": "Some models are slower than others (e.g. party can take ~10 minutes per page on this demo server) — this is a playground. Leaving and resubmitting will simply queue your request again, and requests are limited to a fixed number of pages per hour.",
     "recognizedText": "Recognized text",
     "resetZoom": "Reset",
     "font": "Font",
@@ -205,5 +207,22 @@
     "rateLimitExceeded": "You've reached the limit of playground requests for now — please try again later.",
     "queueFull": "The playground queue is full right now — please try again in a few minutes.",
     "unknownError": "Something went wrong while processing this image."
+  },
+  "playgroundAdmin": {
+    "title": "Playground queue",
+    "queue": "Queue",
+    "queueEmpty": "No queued or running jobs.",
+    "recentFinished": "Recently finished",
+    "recentFinishedEmpty": "No finished jobs yet.",
+    "clearQueue": "Clear queued jobs",
+    "cancel": "Cancel",
+    "remove": "Remove",
+    "viewResult": "View result",
+    "hideResult": "Hide result",
+    "status": "Status",
+    "created": "Created",
+    "finished": "Finished",
+    "models": "Models",
+    "ip": "IP hash"
   }
 }

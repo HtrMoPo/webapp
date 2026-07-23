@@ -313,7 +313,10 @@ const hoveredLineAnchor = computed(() => {
       </div>
       <div v-else-if="jobStatus === 'running'" class="playground-status">
         <div class="spinner spinner--sm"></div>
-        {{ t('playground.running') }}
+        <div>
+          <div>{{ t('playground.running') }}</div>
+          <p class="playground-running-warning">{{ t('playground.runningWarning') }}</p>
+        </div>
       </div>
       <p class="playground-error" v-else-if="jobStatus === 'error'">{{ jobError }}</p>
 
@@ -422,8 +425,10 @@ const hoveredLineAnchor = computed(() => {
 .direction-toggle label { display: flex; align-items: center; gap: 6px; font-weight: 400; margin: 0; }
 .playground-filename { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; max-width: 100%; }
 
-.playground-status { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; font-size: 14px; color: var(--ink-2); }
+.playground-status { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 16px; font-size: 14px; color: var(--ink-2); }
+.playground-status .spinner--sm { margin-top: 2px; }
 .spinner--sm { width: 16px; height: 16px; border-width: 2px; }
+.playground-running-warning { margin: 4px 0 0; font-size: 12.5px; color: var(--ink-3); }
 .playground-error {
   margin: 10px 0; padding: 10px 14px; border-radius: var(--radius-sm);
   background: var(--rose-bg); border: 1px solid var(--rose-line); color: var(--rose-ink);

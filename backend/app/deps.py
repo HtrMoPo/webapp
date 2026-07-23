@@ -13,3 +13,9 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
     if not user:
         raise HTTPException(status_code=401, detail="not_authenticated")
     return user
+
+
+async def get_admin_user(user: User = Depends(get_current_user)) -> User:
+    if not user.is_admin:
+        raise HTTPException(status_code=403, detail="admin_required")
+    return user

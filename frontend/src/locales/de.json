@@ -4,7 +4,8 @@
     "myModels": "Meine Modelle",
     "upload": "Modell hochladen",
     "login": "Mit Zenodo verbinden",
-    "logout": "Abmelden"
+    "logout": "Abmelden",
+    "playgroundAdmin": "Playground-Warteschlange"
   },
   "home": {
     "title": "Dokumentieren & veröffentlichen von <span class=\"accent\">Kraken</span>-Modellen",
@@ -194,6 +195,7 @@
     "run": "Starten",
     "queued": "In Warteschlange — Position {position}",
     "running": "Ihr Bild wird verarbeitet…",
+    "runningWarning": "Manche Modelle sind langsamer als andere (z. B. kann party auf diesem Demo-Server ca. 10 Minuten pro Seite benötigen) — dies ist ein Playground. Wenn Sie die Seite verlassen und erneut absenden, wird Ihre Anfrage einfach erneut in die Warteschlange gestellt; die Anzahl der Seiten pro Stunde ist begrenzt.",
     "recognizedText": "Erkannter Text",
     "resetZoom": "Zurücksetzen",
     "font": "Schriftart",
@@ -205,5 +207,22 @@
     "rateLimitExceeded": "Sie haben das Anfragelimit für den Playground erreicht — bitte versuchen Sie es später erneut.",
     "queueFull": "Die Playground-Warteschlange ist derzeit voll — bitte versuchen Sie es in einigen Minuten erneut.",
     "unknownError": "Bei der Verarbeitung dieses Bildes ist ein Fehler aufgetreten."
+  },
+  "playgroundAdmin": {
+    "title": "Playground-Warteschlange",
+    "queue": "Warteschlange",
+    "queueEmpty": "Keine wartenden oder laufenden Aufträge.",
+    "recentFinished": "Kürzlich abgeschlossen",
+    "recentFinishedEmpty": "Noch keine abgeschlossenen Aufträge.",
+    "clearQueue": "Warteschlange leeren",
+    "cancel": "Abbrechen",
+    "remove": "Entfernen",
+    "viewResult": "Ergebnis anzeigen",
+    "hideResult": "Ergebnis ausblenden",
+    "status": "Status",
+    "created": "Erstellt",
+    "finished": "Abgeschlossen",
+    "models": "Modelle",
+    "ip": "IP-Hash"
   }
 }

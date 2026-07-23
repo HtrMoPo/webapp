@@ -60,7 +60,7 @@ class Settings(BaseSettings):
     # queue of in-flight jobs instead causes new submissions to be rejected.
     playground_max_rows: int = 100
     # Per-IP throttling: at most N job submissions per rolling window.
-    playground_rate_limit_max_per_ip: int = 5
+    playground_rate_limit_max_per_ip: int = 10
     playground_rate_limit_window_minutes: int = 60
 
     @property

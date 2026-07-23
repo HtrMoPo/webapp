@@ -93,6 +93,11 @@ async def _run_job(job_id: int) -> None:
                     data=payload,
                     files=files,
                 )
+            # Logged before raise_for_status so the runner's own error body
+            # (e.g. {"detail": "inference_failed"}) is visible here too, not
+            # just on the happy path -- this is the only place that sees the
+            # runner's raw response.
+            logger.info("Playground job %s runner response (%s): %s", job_id, resp.status_code, resp.text)
             resp.raise_for_status()
             job.result_json = resp.text
             job.status = "done"

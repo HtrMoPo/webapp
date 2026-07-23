@@ -9,7 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.db import get_db as get_catalog_db
-from app.models import ModelVersion
+from app.deps import get_admin_user
+from app.models import ModelVersion, User
 from app.playground.db import get_db
 from app.playground.models import PlaygroundJob
 
@@ -159,3 +160,84 @@ async def get_job(job_id: str, db: AsyncSession = Depends(get_db)):
     elif job.status == "error":
         out["error_message"] = job.error_message
     return out
+
+
+def _admin_job_summary(job: PlaygroundJob) -> dict:
+    return {
+        "id": job.public_id,
+        "status": job.status,
+        "created_at": job.created_at.isoformat(),
+        "started_at": job.started_at.isoformat() if job.started_at else None,
+        "finished_at": job.finished_at.isoformat() if job.finished_at else None,
+        "direction": job.direction,
+        "ip_hash": job.ip_hash,
+        "segmentation": f"{job.segmentation_doi}/{job.segmentation_filename}",
+        "recognition": f"{job.recognition_doi}/{job.recognition_filename}",
+        "region": f"{job.region_doi}/{job.region_filename}" if job.region_doi else None,
+        "error_message": job.error_message,
+    }
+
+
+@router.get("/admin/jobs")
+async def admin_list_jobs(db: AsyncSession = Depends(get_db), _admin: User = Depends(get_admin_user)):
+    """Admin-only: the current queue (queued/running, oldest first -- same
+    order they'll be/are being worked) plus the most recently finished jobs,
+    to see what's going on without paging through everything ever
+    submitted."""
+    active = (
+        await db.execute(
+            select(PlaygroundJob).where(PlaygroundJob.status.in_(_ACTIVE_STATUSES)).order_by(PlaygroundJob.created_at)
+        )
+    ).scalars().all()
+    finished = (
+        await db.execute(
+            select(PlaygroundJob)
+            .where(PlaygroundJob.status.in_(("done", "error")))
+            .order_by(PlaygroundJob.created_at.desc())
+            .limit(50)
+        )
+    ).scalars().all()
+    return {
+        "active": [_admin_job_summary(j) for j in active],
+        "recent_finished": [_admin_job_summary(j) for j in finished],
+    }
+
+
+@router.get("/admin/jobs/{job_id}")
+async def admin_get_job(job_id: str, db: AsyncSession = Depends(get_db), _admin: User = Depends(get_admin_user)):
+    """Admin-only: full detail for one job, including the runner's raw
+    output -- the list endpoint above omits this since it can be sizeable
+    (full per-line text/baselines/boundaries, potentially per region too)."""
+    job = (await db.execute(select(PlaygroundJob).where(PlaygroundJob.public_id == job_id))).scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="not_found")
+    out = _admin_job_summary(job)
+    out["result"] = json.loads(job.result_json) if job.result_json else None
+    return out
+
+
+@router.delete("/admin/jobs/{job_id}")
+async def admin_cancel_job(job_id: str, db: AsyncSession = Depends(get_db), _admin: User = Depends(get_admin_user)):
+    """Admin-only: removes a job outright. For a still-queued job this is a
+    real cancel -- the worker's claim query only ever looks at rows that
+    still exist. For a job already "running", the runner has no way to
+    abort mid-inference (see app.inference's own docstring on this), so this
+    only detaches it: the worker's later commit of the result against a
+    since-deleted row simply matches zero rows and is silently discarded (no
+    ORM version-counting is configured here), rather than erroring."""
+    result = await db.execute(delete(PlaygroundJob).where(PlaygroundJob.public_id == job_id))
+    await db.commit()
+    if result.rowcount == 0:
+        raise HTTPException(status_code=404, detail="not_found")
+    return {"cancelled": job_id}
+
+
+@router.post("/admin/queue/clear")
+async def admin_clear_queue(db: AsyncSession = Depends(get_db), _admin: User = Depends(get_admin_user)):
+    """Admin-only: bulk-cancels every still-*queued* job. Deliberately
+    leaves a currently *running* job alone -- it can't be aborted mid-flight
+    (see admin_cancel_job) and clearing it here would just silently orphan
+    it without freeing up the runner any sooner than letting it finish."""
+    result = await db.execute(delete(PlaygroundJob).where(PlaygroundJob.status == "queued"))
+    await db.commit()
+    return {"cancelled": result.rowcount}

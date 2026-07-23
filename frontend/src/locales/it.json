@@ -4,7 +4,8 @@
     "myModels": "I miei modelli",
     "upload": "Carica un modello",
     "login": "Connetti con Zenodo",
-    "logout": "Disconnetti"
+    "logout": "Disconnetti",
+    "playgroundAdmin": "Coda del playground"
   },
   "home": {
     "title": "Documenta e pubblica modelli <span class=\"accent\">Kraken</span>",
@@ -194,6 +195,7 @@
     "run": "Avvia",
     "queued": "In coda — posizione {position}",
     "running": "Elaborazione dell'immagine…",
+    "runningWarning": "Alcuni modelli sono più lenti di altri (ad esempio party può richiedere circa 10 minuti per pagina su questo server demo) — questo è un playground. Uscire e reinviare la richiesta la rimetterà semplicemente in coda, e il numero di pagine all'ora è limitato.",
     "recognizedText": "Testo riconosciuto",
     "resetZoom": "Ripristina",
     "font": "Carattere",
@@ -205,5 +207,22 @@
     "rateLimitExceeded": "Hai raggiunto il limite di richieste del playground per ora — riprova più tardi.",
     "queueFull": "La coda del playground è piena in questo momento — riprova tra qualche minuto.",
     "unknownError": "Si è verificato un errore durante l'elaborazione di questa immagine."
+  },
+  "playgroundAdmin": {
+    "title": "Coda del playground",
+    "queue": "Coda",
+    "queueEmpty": "Nessuna operazione in coda o in corso.",
+    "recentFinished": "Completate di recente",
+    "recentFinishedEmpty": "Nessuna operazione completata finora.",
+    "clearQueue": "Svuota la coda",
+    "cancel": "Annulla",
+    "remove": "Rimuovi",
+    "viewResult": "Visualizza risultato",
+    "hideResult": "Nascondi risultato",
+    "status": "Stato",
+    "created": "Creata",
+    "finished": "Completata",
+    "models": "Modelli",
+    "ip": "Hash IP"
   }
 }
