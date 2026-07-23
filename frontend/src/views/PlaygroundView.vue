@@ -455,8 +455,16 @@ const hoveredLineAnchor = computed(() => {
   color: var(--ink); margin: 0 0 14px; padding-bottom: 10px;
   border-bottom: 1px solid var(--line); letter-spacing: -.01em;
 }
-.playground-lines { flex: 1; }
-.playground-lines ol { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; }
+.playground-lines {
+  flex: 1; display: flex; flex-direction: column; min-height: 0;
+  /* Real documents can produce far more recognized lines than fit in
+     70vh (dozens, sometimes 70+) -- without a cap here the list just
+     kept growing the whole page past the image and the footer. Capping
+     the card and scrolling its own list internally keeps the two
+     columns visually paired regardless of how much text comes back. */
+  max-height: 70vh;
+}
+.playground-lines ol { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; overflow-y: auto; min-height: 0; }
 .playground-lines li { border-radius: 4px; padding: 2px 6px; margin: 0 -6px; cursor: default; transition: background .1s, box-shadow .1s; }
 .playground-lines li.is-hovered { background: var(--olive-tint); box-shadow: inset 3px 0 0 var(--olive); font-weight: 600; }
 
