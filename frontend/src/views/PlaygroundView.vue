@@ -64,6 +64,7 @@ const queuePosition = ref(null)
 const jobError = ref('')
 const result = ref(null)
 const hoveredLine = ref(null)
+const hoveredRegionType = ref(null)
 
 // Picks the actual model weights out of a version's attached files --
 // published records often also carry a metadata.json/model_card.md (legacy
@@ -316,6 +317,22 @@ const hoveredLineAnchor = computed(() => {
       </div>
       <p class="playground-error" v-else-if="jobStatus === 'error'">{{ jobError }}</p>
 
+      <div v-if="regionTypes.length" class="meta-card playground-region-legend">
+        <h3>{{ t('playground.regions') }}</h3>
+        <ul>
+          <li
+            v-for="type in regionTypes"
+            :key="type"
+            :class="{ 'is-hovered': hoveredRegionType === type }"
+            @mouseenter="hoveredRegionType = type"
+            @mouseleave="hoveredRegionType = null"
+          >
+            <span class="playground-region-swatch" :style="{ background: regionColor(type) }"></span>
+            {{ type }}
+          </li>
+        </ul>
+      </div>
+
       <div v-if="imagePreviewUrl" class="playground-output">
         <div class="playground-canvas-col">
           <div class="playground-zoom-controls">
@@ -338,7 +355,8 @@ const hoveredLineAnchor = computed(() => {
                   :key="`region-${i}`"
                   :points="polygonPoints(region.boundary)"
                   class="playground-region"
-                  :style="{ stroke: regionColor(region.type) }"
+                  :class="{ 'is-hovered': hoveredRegionType === region.type }"
+                  :style="{ stroke: regionColor(region.type), fill: hoveredRegionType === region.type ? regionColor(region.type) : 'none' }"
                 />
                 <polygon
                   v-for="(line, i) in result.lines"
@@ -380,16 +398,6 @@ const hoveredLineAnchor = computed(() => {
               >{{ line.text }}</li>
             </ol>
           </div>
-        </div>
-
-        <div v-if="regionTypes.length" class="meta-card playground-region-legend">
-          <h3>{{ t('playground.regions') }}</h3>
-          <ul>
-            <li v-for="type in regionTypes" :key="type">
-              <span class="playground-region-swatch" :style="{ background: regionColor(type) }"></span>
-              {{ type }}
-            </li>
-          </ul>
         </div>
       </div>
     </template>
@@ -467,7 +475,8 @@ const hoveredLineAnchor = computed(() => {
 }
 .playground-line.is-hovered { fill: rgba(199, 90, 60, .38); stroke-width: 4; }
 
-.playground-region { fill: none; stroke-width: 5; stroke-dasharray: 9 6; opacity: .85; }
+.playground-region { fill: none; stroke-width: 5; stroke-dasharray: 9 6; opacity: .85; transition: fill-opacity .1s; }
+.playground-region.is-hovered { fill-opacity: .3; }
 
 .playground-line-badge circle { fill: var(--ink); stroke: var(--paper); stroke-width: 2; }
 .playground-line-badge text { fill: var(--paper); font-size: 15px; font-weight: 700; font-family: var(--sans); }
@@ -495,13 +504,15 @@ const hoveredLineAnchor = computed(() => {
 .playground-lines li { border-radius: 4px; padding: 2px 6px; margin: 0 -6px; cursor: default; transition: background .1s, box-shadow .1s; }
 .playground-lines li.is-hovered { background: var(--olive-tint); box-shadow: inset 3px 0 0 var(--olive); font-weight: 600; }
 
-.playground-region-legend {
-  /* Spans both columns -- it applies to the image+text pair as a whole
-     (a region type shows up in both), not to just one side. */
-  grid-column: 1 / -1;
-}
+/* Sits above the image/text pair, full width -- a region type applies to
+   both, not to just one side. */
+.playground-region-legend { margin-bottom: 16px; }
 .playground-region-legend ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 22px; }
-.playground-region-legend li { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.playground-region-legend li {
+  display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2);
+  cursor: default; border-radius: 4px; padding: 3px 8px; margin: -3px -8px; transition: background .1s;
+}
+.playground-region-legend li.is-hovered { background: var(--paper-2); color: var(--ink); font-weight: 600; }
 .playground-region-swatch { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
 
 @media (max-width: 1000px) {
