@@ -394,7 +394,16 @@ const hoveredLineAnchor = computed(() => {
 .playground-line-badge circle { fill: var(--ink); stroke: var(--paper); stroke-width: 2; }
 .playground-line-badge text { fill: var(--paper); font-size: 15px; font-weight: 700; font-family: var(--sans); }
 
-.playground-side { display: flex; flex-direction: column; gap: 16px; }
+.playground-side { display: flex; flex-direction: column; gap: 16px; min-height: 500px; }
+.meta-card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 20px; box-shadow: var(--shadow-sm);
+}
+.meta-card h3 {
+  font-family: var(--serif); font-size: 15px; font-weight: 600;
+  color: var(--ink); margin: 0 0 14px; padding-bottom: 10px;
+  border-bottom: 1px solid var(--line); letter-spacing: -.01em;
+}
 .playground-lines ol { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; }
 .playground-lines li { border-radius: 4px; padding: 2px 6px; margin: 0 -6px; cursor: default; transition: background .1s, box-shadow .1s; }
 .playground-lines li.is-hovered { background: var(--olive-tint); box-shadow: inset 3px 0 0 var(--olive); font-weight: 600; }
