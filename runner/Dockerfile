@@ -27,6 +27,14 @@ RUN groupadd -r runner && useradd -r -g runner -u 1000 runner \
     && chown -R runner:runner /app /cache
 USER runner
 
+# The "runner" system user has no real home directory. Several
+# dependencies pulled in by dfine_kraken (huggingface_hub's model/config
+# cache in particular -- used by its timm backbone) default to writing
+# under $HOME the first time a D-Fine model is actually loaded, and fail
+# with a permission error if that path doesn't exist/isn't writable.
+# Pointing HOME at the already-writable, already-persistent /cache volume
+# sidesteps needing a separate home directory entirely.
+ENV HOME=/cache
 ENV MODEL_CACHE_DIR=/cache
 # Caps native thread pools (OMP/OpenBLAS/MKL) and torch's own thread count --
 # see app/threads.py. Kept modest by default since this shares a host with

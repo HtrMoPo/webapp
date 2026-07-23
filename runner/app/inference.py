@@ -6,16 +6,19 @@ Verified against a real kraken 7.0.2 + dfine_kraken 0.4.2 install
 (2026-07-23) by loading real models and inspecting the actual objects
 returned -- notably:
 
-- `SegmentationTaskModel.load_model(path)` / `RecognitionTaskModel.load_model(path)`
-  each load from a SINGLE file. The CLI's `segment -i` looks pluralized
-  ("Baseline/region detection model(s) to use") but the underlying click
-  option is not `multiple=True` and `load_model` takes one path -- there is
-  no supported way to merge a separate baseline (blla) model with a
-  separate D-Fine region model in one segmentation pass. A D-Fine region
-  model (per dfine_kraken's own README: "The default configuration trains
-  lines and regions jointly") is a complete, standalone replacement for the
-  plain segmentation model, not an add-on to it -- so when one is given
-  here it's used *instead of* the segmentation model, not alongside it.
+- `SegmentationTaskModel.load_model(path)` only loads from a SINGLE file,
+  and using a D-Fine region model there alone (as its own README's CLI
+  example does) only ever produced regions, 0 lines, on a real test image
+  -- despite the README's claim that its default training config learns
+  lines and regions jointly, the plugin's line output apparently isn't
+  wired up the same way blla's is. The combination that actually works,
+  confirmed by inspecting `SegmentationTaskModel.__init__`/`load_model`'s
+  own source: `load_models(path)` (plural, in `kraken.models`) returns a
+  *list* of models from one file, and `SegmentationTaskModel` just takes a
+  list -- so loading both the baseline (blla) and region (D-Fine) files
+  separately and concatenating their model lists into one
+  `SegmentationTaskModel` produces both real baselines/lines *and*
+  D-Fine's regions in a single predict() call.
 - The recognized text on each predicted line lives on a `.prediction`
   property (backed by a private `_prediction` attribute), NOT on the
   dataclass's own `text` field -- `dataclasses.asdict()` on a prediction
@@ -61,15 +64,16 @@ def _run_sync(
 ) -> dict:
     from kraken.configs import RecognitionInferenceConfig, SegmentationInferenceConfig
     from kraken.lib.util import open_image
+    from kraken.models import load_models
     from kraken.tasks import RecognitionTaskModel, SegmentationTaskModel
 
     im = open_image(str(image_path))
     text_direction = _DIRECTION_MAP[direction]
 
-    # See module docstring: a region model replaces the segmentation model
-    # rather than combining with it.
-    seg_path = region_model_path or segmentation_model_path
-    seg_model = SegmentationTaskModel.load_model(str(seg_path))
+    seg_models = load_models(str(segmentation_model_path))
+    if region_model_path is not None:
+        seg_models = seg_models + load_models(str(region_model_path))
+    seg_model = SegmentationTaskModel(seg_models)
     seg_config = SegmentationInferenceConfig(text_direction=text_direction, num_threads=threads)
     segmentation = seg_model.predict(im=im, config=seg_config)
 

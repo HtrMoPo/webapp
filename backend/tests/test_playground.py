@@ -153,15 +153,29 @@ class TestUnknownModelRef:
 
 
 class TestQueuePosition:
-    async def test_reports_position_before_the_running_job(self, playground_db_session, db_session):
+    async def test_first_job_is_position_one_not_zero(self, playground_db_session, db_session):
+        """Position is 1-indexed for display -- "position 1" means next in
+        line, not "0 jobs ahead of it"."""
         await _seed_model(db_session)
         first = await _submit(playground_db_session, db_session, request=FakeRequest("1.1.1.1"))
         second = await _submit(playground_db_session, db_session, request=FakeRequest("2.2.2.2"))
-        assert first["queue_position"] == 0
-        assert second["queue_position"] == 1
+        assert first["queue_position"] == 1
+        assert second["queue_position"] == 2
 
         status = await playground_router.get_job(second["id"], db=playground_db_session)
-        assert status["queue_position"] == 1
+        assert status["queue_position"] == 2
+
+    async def test_running_job_counts_as_ahead(self, playground_db_session, db_session):
+        """A job waiting behind one already being processed must not report
+        the same position as if nothing were ahead of it."""
+        await _seed_model(db_session)
+        first = await _submit(playground_db_session, db_session, request=FakeRequest("1.1.1.1"))
+        running = await playground_db_session.get(PlaygroundJob, first["id"])
+        running.status = "running"
+        await playground_db_session.commit()
+
+        second = await _submit(playground_db_session, db_session, request=FakeRequest("2.2.2.2"))
+        assert second["queue_position"] == 2
 
 
 class TestCleanup:

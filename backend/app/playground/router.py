@@ -24,6 +24,23 @@ def _hash_ip(ip: str) -> str:
     return hashlib.sha256(ip.encode("utf-8")).hexdigest()
 
 
+async def _queue_position(job: PlaygroundJob, db: AsyncSession) -> int:
+    """1-indexed rank of `job` among not-yet-finished work (queued or
+    already running) created before it -- "position 1" means it's next in
+    line, not "0 jobs ahead of it". Also counts a currently *running* job
+    as occupying a spot, so a queued job waiting behind one being processed
+    doesn't misleadingly show the same position as if nothing were ahead
+    of it."""
+    ahead = (
+        await db.execute(
+            select(func.count())
+            .select_from(PlaygroundJob)
+            .where(PlaygroundJob.status.in_(_ACTIVE_STATUSES), PlaygroundJob.created_at < job.created_at)
+        )
+    ).scalar_one()
+    return ahead + 1
+
+
 async def _resolve_model_ref(doi: str, filename: str, db: AsyncSession) -> str:
     """Confirms `doi`/`filename` is a real, published model file this app
     already knows about -- so the runner container is only ever asked to
@@ -125,15 +142,7 @@ async def submit_job(
     await db.commit()
     await db.refresh(job)
 
-    queue_position = (
-        await db.execute(
-            select(func.count())
-            .select_from(PlaygroundJob)
-            .where(PlaygroundJob.status == "queued", PlaygroundJob.created_at < job.created_at)
-        )
-    ).scalar_one()
-
-    return {"id": job.id, "status": job.status, "queue_position": queue_position}
+    return {"id": job.id, "status": job.status, "queue_position": await _queue_position(job, db)}
 
 
 @router.get("/jobs/{job_id}")
@@ -144,13 +153,7 @@ async def get_job(job_id: int, db: AsyncSession = Depends(get_db)):
 
     out = {"id": job.id, "status": job.status}
     if job.status == "queued":
-        out["queue_position"] = (
-            await db.execute(
-                select(func.count())
-                .select_from(PlaygroundJob)
-                .where(PlaygroundJob.status == "queued", PlaygroundJob.created_at < job.created_at)
-            )
-        ).scalar_one()
+        out["queue_position"] = await _queue_position(job, db)
     elif job.status == "done":
         out["result"] = json.loads(job.result_json) if job.result_json else None
     elif job.status == "error":
