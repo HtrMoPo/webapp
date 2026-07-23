@@ -24,15 +24,19 @@ def _hash_ip(ip: str) -> str:
     return hashlib.sha256(ip.encode("utf-8")).hexdigest()
 
 
-async def _resolve_model_ref(doi: str, filename: str, db: AsyncSession) -> None:
+async def _resolve_model_ref(doi: str, filename: str, db: AsyncSession) -> str:
     """Confirms `doi`/`filename` is a real, published model file this app
     already knows about -- so the runner container is only ever asked to
     fetch a Zenodo URL this app itself vouches for, never an
-    arbitrary/attacker-supplied one."""
+    arbitrary/attacker-supplied one. Returns the version's own zenodo_env
+    (production vs sandbox), which is what actually determines which Zenodo
+    instance serves the file -- not this deployment's own ZENODO_ENV
+    setting (see PlaygroundJob.segmentation_zenodo_env)."""
     result = await db.execute(select(ModelVersion).where(ModelVersion.version_doi == doi, ModelVersion.status == "published"))
     version = result.scalar_one_or_none()
     if not version or not any(f["filename"] == filename for f in version.files):
         raise HTTPException(status_code=422, detail=f"unknown_model_file: {doi} / {filename}")
+    return version.zenodo_env or "production"
 
 
 @router.post("/jobs")
@@ -55,12 +59,13 @@ async def submit_job(
     if direction not in ("ltr", "rtl"):
         raise HTTPException(status_code=422, detail="invalid_direction")
 
-    await _resolve_model_ref(segmentation_doi, segmentation_filename, catalog_db)
-    await _resolve_model_ref(recognition_doi, recognition_filename, catalog_db)
+    segmentation_zenodo_env = await _resolve_model_ref(segmentation_doi, segmentation_filename, catalog_db)
+    recognition_zenodo_env = await _resolve_model_ref(recognition_doi, recognition_filename, catalog_db)
+    region_zenodo_env = None
     if region_doi or region_filename:
         if not (region_doi and region_filename):
             raise HTTPException(status_code=422, detail="incomplete_region_model")
-        await _resolve_model_ref(region_doi, region_filename, catalog_db)
+        region_zenodo_env = await _resolve_model_ref(region_doi, region_filename, catalog_db)
 
     ip_hash = _hash_ip(request.client.host if request.client else "unknown")
 
@@ -77,21 +82,23 @@ async def submit_job(
 
     total = (await db.execute(select(func.count()).select_from(PlaygroundJob))).scalar_one()
     if total >= settings.playground_max_rows:
-        # Only ever evict rows that are actually finished -- a full queue of
-        # in-flight (queued/running) work must never be dropped to make room
-        # for a new submission; the submitter gets told to try later instead.
-        oldest_done_ids = (
+        # Only ever evict rows that are actually finished (done or error) --
+        # a full queue of genuinely in-flight (queued/running) work must
+        # never be dropped to make room for a new submission; the submitter
+        # gets told to try later instead. Failed jobs are just as evictable
+        # as successful ones here -- neither represents work still pending.
+        oldest_finished_ids = (
             await db.execute(
                 select(PlaygroundJob.id)
-                .where(PlaygroundJob.status == "done")
+                .where(PlaygroundJob.status.in_(("done", "error")))
                 .order_by(PlaygroundJob.created_at)
                 .limit(total - settings.playground_max_rows + 1)
             )
         ).scalars().all()
-        if oldest_done_ids:
-            await db.execute(delete(PlaygroundJob).where(PlaygroundJob.id.in_(oldest_done_ids)))
+        if oldest_finished_ids:
+            await db.execute(delete(PlaygroundJob).where(PlaygroundJob.id.in_(oldest_finished_ids)))
             await db.commit()
-            total -= len(oldest_done_ids)
+            total -= len(oldest_finished_ids)
         if total >= settings.playground_max_rows:
             raise HTTPException(status_code=503, detail="queue_full")
 
@@ -104,10 +111,13 @@ async def submit_job(
         direction=direction,
         segmentation_doi=segmentation_doi,
         segmentation_filename=segmentation_filename,
+        segmentation_zenodo_env=segmentation_zenodo_env,
         recognition_doi=recognition_doi,
         recognition_filename=recognition_filename,
+        recognition_zenodo_env=recognition_zenodo_env,
         region_doi=region_doi or None,
         region_filename=region_filename or None,
+        region_zenodo_env=region_zenodo_env,
         image_bytes=image_bytes,
         image_content_type=image.content_type or "application/octet-stream",
     )

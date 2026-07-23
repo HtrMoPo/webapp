@@ -34,13 +34,22 @@ class PlaygroundJob(Base):
 
     direction: Mapped[str] = mapped_column(String, default="ltr")  # "ltr" | "rtl"
 
+    # zenodo_env per model reference is the *catalog record's own*
+    # ModelVersion.zenodo_env (production vs sandbox), not this
+    # deployment's own ZENODO_ENV setting -- a deployment configured for
+    # sandbox publishing can still reference production-hosted catalog
+    # models (and vice versa), so the runner needs to know, per file,
+    # which Zenodo instance actually serves it.
     segmentation_doi: Mapped[str] = mapped_column(String)
     segmentation_filename: Mapped[str] = mapped_column(String)
+    segmentation_zenodo_env: Mapped[str] = mapped_column(String, default="production")
     recognition_doi: Mapped[str] = mapped_column(String)
     recognition_filename: Mapped[str] = mapped_column(String)
+    recognition_zenodo_env: Mapped[str] = mapped_column(String, default="production")
     # Optional D-Fine region-segmentation model.
     region_doi: Mapped[str | None] = mapped_column(String, nullable=True)
     region_filename: Mapped[str | None] = mapped_column(String, nullable=True)
+    region_zenodo_env: Mapped[str | None] = mapped_column(String, nullable=True)
 
     image_bytes: Mapped[bytes] = mapped_column(LargeBinary)
     image_content_type: Mapped[str] = mapped_column(String, default="application/octet-stream")

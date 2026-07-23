@@ -228,7 +228,8 @@ function polygonPoints(coords) {
 
           <label>{{ t('playground.image') }}</label>
           <div class="add-row-btn" @dragover.prevent @drop="onDrop" @click="$refs.fileInput.click()">
-            {{ imageFile ? imageFile.name : t('playground.dropImage') }}
+            <span v-if="imageFile" class="playground-filename" :title="imageFile.name">{{ imageFile.name }}</span>
+            <template v-else>{{ t('playground.dropImage') }}</template>
           </div>
           <input ref="fileInput" type="file" accept="image/*" style="display:none" @change="onFileSelected" />
 
@@ -285,6 +286,7 @@ function polygonPoints(coords) {
 .playground-grid label:first-child { margin-top: 0; }
 .direction-toggle { display: flex; gap: 16px; font-weight: 400; font-size: 14px; }
 .direction-toggle label { display: flex; align-items: center; gap: 6px; font-weight: 400; margin: 0; }
+.playground-filename { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; max-width: 100%; }
 
 .playground-status { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; font-size: 14px; color: var(--ink-2); }
 .spinner--sm { width: 16px; height: 16px; border-width: 2px; }

@@ -64,21 +64,21 @@ async def _run_job(job_id: int) -> None:
         if job is None:
             return
 
-        # The runner has no way to look up a DOI's zenodo_env itself (it
-        # never talks to this app's catalog DB), so this deployment's own
-        # ZENODO_ENV is used for every model reference -- consistent with
-        # how the rest of the app already treats zenodo_env as a
-        # deployment-wide setting rather than a per-record one.
-        zenodo_env = settings.zenodo_env
+        # Each model reference carries its *own* zenodo_env, captured at
+        # submission time from the catalog's ModelVersion (see
+        # app.playground.router._resolve_model_ref) -- a deployment
+        # configured for sandbox publishing can still reference
+        # production-hosted catalog models, so this deployment's own
+        # ZENODO_ENV must never be assumed to apply to every model file.
         payload = {
             "direction": job.direction,
-            "segmentation_url": _file_url(job.segmentation_doi, zenodo_env, job.segmentation_filename),
+            "segmentation_url": _file_url(job.segmentation_doi, job.segmentation_zenodo_env, job.segmentation_filename),
             "segmentation_key": f"{job.segmentation_doi}/{job.segmentation_filename}",
-            "recognition_url": _file_url(job.recognition_doi, zenodo_env, job.recognition_filename),
+            "recognition_url": _file_url(job.recognition_doi, job.recognition_zenodo_env, job.recognition_filename),
             "recognition_key": f"{job.recognition_doi}/{job.recognition_filename}",
         }
         if job.region_doi and job.region_filename:
-            payload["region_url"] = _file_url(job.region_doi, zenodo_env, job.region_filename)
+            payload["region_url"] = _file_url(job.region_doi, job.region_zenodo_env, job.region_filename)
             payload["region_key"] = f"{job.region_doi}/{job.region_filename}"
 
         # httpx's files= tuple is (filename, content, content_type) -- the
