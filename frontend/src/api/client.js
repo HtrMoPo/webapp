@@ -63,4 +63,18 @@ export const api = {
     }),
   publishProgress: (versionId) => request(`/models/versions/${versionId}/publish/progress`),
   triggerHarvest: () => request('/models/harvest', { method: 'POST' }),
+
+  submitPlaygroundJob: (payload) => {
+    const form = new FormData()
+    form.append('image', payload.image)
+    form.append('direction', payload.direction)
+    form.append('segmentation_doi', payload.segmentationDoi)
+    form.append('segmentation_filename', payload.segmentationFilename)
+    form.append('recognition_doi', payload.recognitionDoi)
+    form.append('recognition_filename', payload.recognitionFilename)
+    if (payload.regionDoi) form.append('region_doi', payload.regionDoi)
+    if (payload.regionFilename) form.append('region_filename', payload.regionFilename)
+    return request('/playground/jobs', { method: 'POST', body: form })
+  },
+  playgroundJob: (id) => request(`/playground/jobs/${id}`),
 }

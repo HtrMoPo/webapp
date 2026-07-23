@@ -21,6 +21,32 @@ services:
       NIGHTLY_HARVEST_HOUR_UTC: ${NIGHTLY_HARVEST_HOUR_UTC:-2}
       UVICORN_WORKERS: ${UVICORN_WORKERS:-1}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      ENABLE_PLAYGROUND: ${ENABLE_PLAYGROUND:-true}
+      PLAYGROUND_DATABASE_PATH: /data/playground.db
+      PLAYGROUND_RUNNER_URL: http://runner:8100
+      PLAYGROUND_JOB_TIMEOUT_SECONDS: ${PLAYGROUND_JOB_TIMEOUT_SECONDS:-300}
+      PLAYGROUND_MAX_ROWS: ${PLAYGROUND_MAX_ROWS:-100}
+      PLAYGROUND_RATE_LIMIT_MAX_PER_IP: ${PLAYGROUND_RATE_LIMIT_MAX_PER_IP:-5}
+      PLAYGROUND_RATE_LIMIT_WINDOW_MINUTES: ${PLAYGROUND_RATE_LIMIT_WINDOW_MINUTES:-60}
     volumes:
       - ./data:/data
     restart: unless-stopped
+    depends_on:
+      - runner
+
+  runner:
+    build:
+      context: ./runner
+    environment:
+      RUNNER_THREADS: ${RUNNER_THREADS:-2}
+    volumes:
+      - runner-model-cache:/cache
+    # No ports: block -- only reachable from `app` over the compose network.
+    # Caps this container's CPU footprint regardless of RUNNER_THREADS, since
+    # kraken/torch can still spawn more native threads than requested on some
+    # BLAS backends.
+    cpus: ${RUNNER_CPUS:-2}
+    restart: unless-stopped
+
+volumes:
+  runner-model-cache:

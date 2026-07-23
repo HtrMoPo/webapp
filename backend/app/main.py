@@ -15,6 +15,9 @@ from app import claim, harvest, htr_united
 from app.config import get_settings
 from app.db import async_session
 from app.models import HarvestClaim, User
+from app.playground import db as playground_db
+from app.playground import worker as playground_worker
+from app.playground.router import router as playground_router
 from app.routers import auth, meta, models
 
 settings = get_settings()
@@ -132,6 +135,13 @@ async def lifespan(app: FastAPI):
     tasks = [asyncio.create_task(_run_initial_crawl_if_needed())]
     if settings.enable_nightly_harvest:
         tasks.append(asyncio.create_task(_nightly_harvest_loop()))
+    if settings.enable_playground:
+        await playground_db.init_models()
+        # A job left "running" from before a restart would otherwise never
+        # be picked up again (see playground_worker.mark_stale_running_jobs_as_failed).
+        await playground_worker.mark_stale_running_jobs_as_failed()
+        tasks.append(asyncio.create_task(playground_worker.playground_worker_loop()))
+        tasks.append(asyncio.create_task(playground_worker.playground_cleanup_loop()))
     yield
     for task in tasks:
         task.cancel()
@@ -143,6 +153,8 @@ app.add_middleware(SessionMiddleware, secret_key=settings.session_secret, same_s
 app.include_router(auth.router)
 app.include_router(meta.router)
 app.include_router(models.router)
+if settings.enable_playground:
+    app.include_router(playground_router)
 
 
 @app.get("/healthz")

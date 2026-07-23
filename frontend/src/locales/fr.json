@@ -83,7 +83,8 @@
     "obsoletedBy": "Remplacé par",
     "variants": "Variante(s)",
     "variantOf": "Variante de",
-    "relatedPapers": "Article(s) associé(s)"
+    "relatedPapers": "Article(s) associé(s)",
+    "tryPlayground": "Essayer dans le bac à sable"
   },
   "form": {
     "titleNew": "Documenter un nouveau modèle",
@@ -172,8 +173,31 @@
     "save": "Enregistrer",
     "add": "Ajouter",
     "remove": "Retirer",
+    "optional": "optionnel",
     "language_en": "Anglais",
     "language_fr": "Français",
     "language": "Langue"
+  },
+  "playground": {
+    "title": "Bac à sable",
+    "subtitle": "Essayer",
+    "segmentationModel": "Modèle de segmentation",
+    "recognitionModel": "Modèle de reconnaissance de texte",
+    "regionModel": "Modèle de régions (D-Fine)",
+    "selectModel": "Sélectionner un modèle…",
+    "none": "Aucun",
+    "direction": "Sens du texte",
+    "ltr": "Gauche à droite",
+    "rtl": "Droite à gauche",
+    "image": "Image",
+    "dropImage": "Déposez une image ici, ou cliquez pour la choisir",
+    "run": "Lancer",
+    "queued": "En attente — position {position} dans la file",
+    "running": "Traitement de votre image…",
+    "recognizedText": "Texte reconnu",
+    "needImage": "Veuillez d'abord choisir une image.",
+    "needModels": "Veuillez sélectionner un modèle de segmentation et un modèle de reconnaissance.",
+    "submitFailed": "Impossible de soumettre la tâche.",
+    "unknownError": "Une erreur est survenue lors du traitement de cette image."
   }
 }

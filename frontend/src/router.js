@@ -11,6 +11,12 @@ const routes = [
     // ever reads doiSlug, which is the actual lookup key.
     props: (route) => ({ doiSlug: route.params.doiSlug }),
   },
+  {
+    path: '/models/:doiSlug/playground',
+    name: 'playground',
+    component: () => import('./views/PlaygroundView.vue'),
+    props: true,
+  },
   { path: '/upload', name: 'upload', component: () => import('./views/ModelFormView.vue') },
   {
     path: '/models/:recordId/new-version',
