@@ -196,6 +196,8 @@
     "running": "Traitement de votre image…",
     "recognizedText": "Texte reconnu",
     "resetZoom": "Réinitialiser",
+    "font": "Police",
+    "fontDefault": "Par défaut",
     "regions": "Régions détectées",
     "needImage": "Veuillez d'abord choisir une image.",
     "needModels": "Veuillez sélectionner un modèle de segmentation et un modèle de reconnaissance.",

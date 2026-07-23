@@ -36,6 +36,17 @@ const ZOOM_MAX = 4
 function zoomIn() { zoom.value = Math.min(ZOOM_MAX, +(zoom.value + 0.25).toFixed(2)) }
 function zoomOut() { zoom.value = Math.max(ZOOM_MIN, +(zoom.value - 0.25).toFixed(2)) }
 function zoomReset() { zoom.value = 1 }
+
+// Rendering fonts for the recognized-text list -- Junicode and Scheherazade
+// (for Arabic) are specialist fonts common in this field but not bundled
+// here; if the reader has them installed system-wide the browser will
+// simply pick them up, otherwise this falls back to a generic serif.
+const fontChoice = ref('default')
+const FONT_FAMILIES = {
+  junicode: "'Junicode', serif",
+  scheherazade: "'Scheherazade New', 'Scheherazade', serif",
+}
+const fontFamilyValue = computed(() => FONT_FAMILIES[fontChoice.value] || undefined)
 function onCanvasWheel(e) {
   // Plain wheel zooms the image (no modifier needed) -- this claims
   // scrolling over the image for zoom rather than page/viewport scroll;
@@ -349,9 +360,17 @@ const hoveredLineAnchor = computed(() => {
         </div>
 
         <div v-if="result" class="playground-side">
+          <div class="playground-text-controls">
+            <label for="playground-font">{{ t('playground.font') }}</label>
+            <select id="playground-font" v-model="fontChoice" class="playground-font-select">
+              <option value="default">{{ t('playground.fontDefault') }}</option>
+              <option value="junicode">Junicode</option>
+              <option value="scheherazade">Scheherazade</option>
+            </select>
+          </div>
           <div class="meta-card playground-lines">
             <h3>{{ t('playground.recognizedText') }}</h3>
-            <ol>
+            <ol :dir="direction" :style="{ fontFamily: fontFamilyValue }">
               <li
                 v-for="(line, i) in result.lines"
                 :key="i"
@@ -416,6 +435,14 @@ const hoveredLineAnchor = computed(() => {
 .playground-zoom-level { font-size: 12.5px; color: var(--ink-3); min-width: 40px; text-align: center; }
 .playground-zoom-reset {
   font-size: 12px; font-weight: 600; color: var(--accent); background: none; border: none; cursor: pointer; padding: 0 4px;
+}
+
+.playground-text-controls { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.playground-text-controls label { font-size: 12.5px; color: var(--ink-3); }
+.playground-font-select {
+  font-family: var(--sans); font-size: 12.5px; color: var(--ink-2);
+  border: 1px solid var(--line-2); border-radius: 6px; padding: 4px 8px;
+  background: var(--surface); cursor: pointer;
 }
 
 .playground-canvas-viewport {

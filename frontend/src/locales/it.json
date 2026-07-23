@@ -196,6 +196,8 @@
     "running": "Elaborazione dell'immagine…",
     "recognizedText": "Testo riconosciuto",
     "resetZoom": "Ripristina",
+    "font": "Carattere",
+    "fontDefault": "Predefinito",
     "regions": "Regioni rilevate",
     "needImage": "Seleziona prima un'immagine.",
     "needModels": "Seleziona un modello di segmentazione e uno di riconoscimento.",

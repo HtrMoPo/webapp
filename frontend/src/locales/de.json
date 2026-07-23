@@ -196,6 +196,8 @@
     "running": "Ihr Bild wird verarbeitet…",
     "recognizedText": "Erkannter Text",
     "resetZoom": "Zurücksetzen",
+    "font": "Schriftart",
+    "fontDefault": "Standard",
     "regions": "Erkannte Regionen",
     "needImage": "Bitte wählen Sie zuerst ein Bild aus.",
     "needModels": "Bitte wählen Sie ein Segmentierungs- und ein Erkennungsmodell aus.",
