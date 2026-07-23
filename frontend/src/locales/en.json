@@ -195,6 +195,7 @@
     "queued": "Queued — position {position} in line",
     "running": "Processing your image…",
     "recognizedText": "Recognized text",
+    "regions": "Detected regions",
     "needImage": "Please choose an image first.",
     "needModels": "Please select a segmentation and a recognition model.",
     "submitFailed": "Could not submit the job.",

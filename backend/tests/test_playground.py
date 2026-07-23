@@ -169,8 +169,12 @@ class TestQueuePosition:
         """A job waiting behind one already being processed must not report
         the same position as if nothing were ahead of it."""
         await _seed_model(db_session)
+        from sqlalchemy import select
+
         first = await _submit(playground_db_session, db_session, request=FakeRequest("1.1.1.1"))
-        running = await playground_db_session.get(PlaygroundJob, first["id"])
+        running = (
+            await playground_db_session.execute(select(PlaygroundJob).where(PlaygroundJob.public_id == first["id"]))
+        ).scalar_one()
         running.status = "running"
         await playground_db_session.commit()
 

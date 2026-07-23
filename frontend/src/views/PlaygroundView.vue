@@ -13,6 +13,10 @@ const { t } = useI18n()
 // override it.
 const RTL_SCRIPTS = new Set(['Arab', 'Hebr', 'Syrc', 'Thaa', 'Nkoo'])
 
+// Fixed, deterministic palette for D-Fine region types -- cycles if there
+// are more distinct region types on a page than colors.
+const REGION_PALETTE = ['#3a6ea5', '#c75a3c', '#5a8f5a', '#a05ac7', '#c7a13a', '#3ab0a0']
+
 const record = ref(null)
 const catalog = ref([])
 const loading = ref(true)
@@ -34,6 +38,7 @@ const jobStatus = ref('') // 'queued' | 'running' | 'done' | 'error'
 const queuePosition = ref(null)
 const jobError = ref('')
 const result = ref(null)
+const hoveredLine = ref(null)
 
 // Picks the actual model weights out of a version's attached files --
 // published records often also carry a metadata.json/model_card.md (legacy
@@ -103,10 +108,6 @@ function onPreviewLoad(e) {
 
 function entryFor(doi) {
   return catalog.value.find((m) => doiFor(m) === doi)
-}
-
-function stopPolling() {
-  jobId.value = null
 }
 
 async function poll(id) {
@@ -179,6 +180,23 @@ async function submit() {
 function polygonPoints(coords) {
   return (coords || []).map((p) => p.join(',')).join(' ')
 }
+
+// Flattened, colored list of D-Fine/region polygons -- `result.regions` is
+// `{ regionType: [boundary, ...] }`, keyed by whatever label the
+// segmentation model(s) used (e.g. blla's own "text", D-Fine's SegmOnto
+// zone names like "MainZone-Head").
+const regionTypes = computed(() => Object.keys(result.value?.regions || {}))
+function regionColor(type) {
+  const i = regionTypes.value.indexOf(type)
+  return REGION_PALETTE[i % REGION_PALETTE.length]
+}
+const flatRegions = computed(() => {
+  const list = []
+  for (const [type, boundaries] of Object.entries(result.value?.regions || {})) {
+    for (const boundary of boundaries) list.push({ type, boundary })
+  }
+  return list
+})
 </script>
 
 <template>
@@ -196,82 +214,106 @@ function polygonPoints(coords) {
         </p>
       </div>
 
-      <div class="playground-grid">
-        <div class="form-section">
+      <div class="playground-toolbar">
+        <div class="toolbar-field">
           <label>{{ t('playground.segmentationModel') }}</label>
-          <ModelAutocomplete
-            v-model="segmentationDoi"
-            :options="segmentationOptions"
-            :placeholder="t('playground.selectModel')"
-          />
+          <ModelAutocomplete v-model="segmentationDoi" :options="segmentationOptions" :placeholder="t('playground.selectModel')" />
+        </div>
 
+        <div class="toolbar-field">
           <label>{{ t('playground.recognitionModel') }}</label>
-          <ModelAutocomplete
-            v-model="recognitionDoi"
-            :options="recognitionOptions"
-            :placeholder="t('playground.selectModel')"
-          />
+          <ModelAutocomplete v-model="recognitionDoi" :options="recognitionOptions" :placeholder="t('playground.selectModel')" />
+        </div>
 
+        <div class="toolbar-field">
           <label>{{ t('playground.regionModel') }} <span class="form-help">({{ t('common.optional') }})</span></label>
-          <ModelAutocomplete
-            v-model="regionDoi"
-            :options="regionOptions"
-            :placeholder="t('playground.none')"
-            clearable
-          />
+          <ModelAutocomplete v-model="regionDoi" :options="regionOptions" :placeholder="t('playground.none')" clearable />
+        </div>
 
+        <div class="toolbar-field toolbar-field--narrow">
           <label>{{ t('playground.direction') }}</label>
           <div class="direction-toggle">
             <label><input type="radio" value="ltr" v-model="direction" /> {{ t('playground.ltr') }}</label>
             <label><input type="radio" value="rtl" v-model="direction" /> {{ t('playground.rtl') }}</label>
           </div>
+        </div>
 
+        <div class="toolbar-field toolbar-field--narrow">
           <label>{{ t('playground.image') }}</label>
-          <div class="add-row-btn" @dragover.prevent @drop="onDrop" @click="$refs.fileInput.click()">
+          <div class="add-row-btn playground-drop" @dragover.prevent @drop="onDrop" @click="$refs.fileInput.click()">
             <span v-if="imageFile" class="playground-filename" :title="imageFile.name">{{ imageFile.name }}</span>
             <template v-else>{{ t('playground.dropImage') }}</template>
           </div>
           <input ref="fileInput" type="file" accept="image/*" style="display:none" @change="onFileSelected" />
-
-          <p class="playground-error" v-if="submitError">{{ submitError }}</p>
-          <button class="btn btn--olive" :disabled="submitting || jobStatus === 'queued' || jobStatus === 'running'" @click="submit">
-            {{ t('playground.run') }}
-          </button>
         </div>
 
-        <div class="playground-result">
-          <div v-if="jobStatus === 'queued'" class="playground-status">
-            <div class="spinner spinner--sm"></div>
-            {{ t('playground.queued', { position: queuePosition }) }}
-          </div>
-          <div v-else-if="jobStatus === 'running'" class="playground-status">
-            <div class="spinner spinner--sm"></div>
-            {{ t('playground.running') }}
-          </div>
-          <p class="playground-error" v-else-if="jobStatus === 'error'">{{ jobError }}</p>
+        <button class="btn btn--olive playground-run" :disabled="submitting || jobStatus === 'queued' || jobStatus === 'running'" @click="submit">
+          {{ t('playground.run') }}
+        </button>
+      </div>
 
-          <div v-if="imagePreviewUrl" class="playground-canvas">
-            <img :src="imagePreviewUrl" @load="onPreviewLoad" alt="" />
-            <svg
-              v-if="result && imageNaturalSize"
-              class="playground-overlay"
-              :viewBox="`0 0 ${imageNaturalSize.width} ${imageNaturalSize.height}`"
-              preserveAspectRatio="xMidYMid meet"
-            >
-              <polygon
-                v-for="(line, i) in result.lines"
-                :key="i"
-                :points="polygonPoints(line.boundary)"
-                class="playground-line"
-              />
-            </svg>
-          </div>
+      <p class="playground-error" v-if="submitError">{{ submitError }}</p>
 
-          <div v-if="result" class="meta-card playground-lines">
+      <div v-if="jobStatus === 'queued'" class="playground-status">
+        <div class="spinner spinner--sm"></div>
+        {{ t('playground.queued', { position: queuePosition }) }}
+      </div>
+      <div v-else-if="jobStatus === 'running'" class="playground-status">
+        <div class="spinner spinner--sm"></div>
+        {{ t('playground.running') }}
+      </div>
+      <p class="playground-error" v-else-if="jobStatus === 'error'">{{ jobError }}</p>
+
+      <div v-if="imagePreviewUrl" class="playground-output">
+        <div class="playground-canvas">
+          <img :src="imagePreviewUrl" @load="onPreviewLoad" alt="" />
+          <svg
+            v-if="result && imageNaturalSize"
+            class="playground-overlay"
+            :viewBox="`0 0 ${imageNaturalSize.width} ${imageNaturalSize.height}`"
+            preserveAspectRatio="xMidYMid meet"
+          >
+            <polygon
+              v-for="(region, i) in flatRegions"
+              :key="`region-${i}`"
+              :points="polygonPoints(region.boundary)"
+              class="playground-region"
+              :style="{ stroke: regionColor(region.type) }"
+            />
+            <polygon
+              v-for="(line, i) in result.lines"
+              :key="i"
+              :points="polygonPoints(line.boundary)"
+              class="playground-line"
+              :class="{ 'is-hovered': hoveredLine === i }"
+              @mouseenter="hoveredLine = i"
+              @mouseleave="hoveredLine = null"
+            ><title>{{ line.text }}</title></polygon>
+          </svg>
+        </div>
+
+        <div v-if="result" class="playground-side">
+          <div class="meta-card playground-lines">
             <h3>{{ t('playground.recognizedText') }}</h3>
             <ol>
-              <li v-for="(line, i) in result.lines" :key="i">{{ line.text }}</li>
+              <li
+                v-for="(line, i) in result.lines"
+                :key="i"
+                :class="{ 'is-hovered': hoveredLine === i }"
+                @mouseenter="hoveredLine = i"
+                @mouseleave="hoveredLine = null"
+              >{{ line.text }}</li>
             </ol>
+          </div>
+
+          <div v-if="regionTypes.length" class="meta-card playground-region-legend">
+            <h3>{{ t('playground.regions') }}</h3>
+            <ul>
+              <li v-for="type in regionTypes" :key="type">
+                <span class="playground-region-swatch" :style="{ background: regionColor(type) }"></span>
+                {{ type }}
+              </li>
+            </ul>
           </div>
         </div>
       </div>
@@ -281,10 +323,19 @@ function polygonPoints(coords) {
 
 <style scoped>
 .playground-shell { max-width: var(--maxw); margin: 0 auto; padding: 28px 28px 80px; }
-.playground-grid { display: grid; grid-template-columns: 320px 1fr; gap: 30px; align-items: start; }
-.playground-grid label { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 6px; }
-.playground-grid label:first-child { margin-top: 0; }
-.direction-toggle { display: flex; gap: 16px; font-weight: 400; font-size: 14px; }
+
+.playground-toolbar {
+  display: flex; flex-wrap: wrap; align-items: end; gap: 16px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 20px; box-shadow: var(--shadow-sm); margin-bottom: 16px;
+}
+.toolbar-field { flex: 1 1 200px; min-width: 180px; }
+.toolbar-field--narrow { flex: 1 1 160px; min-width: 150px; }
+.playground-toolbar label { display: block; font-size: 13px; font-weight: 600; margin: 0 0 6px; }
+.playground-drop { padding: 10px 12px; }
+.playground-run { flex-shrink: 0; }
+
+.direction-toggle { display: flex; gap: 16px; font-weight: 400; font-size: 14px; height: 38px; align-items: center; }
 .direction-toggle label { display: flex; align-items: center; gap: 6px; font-weight: 400; margin: 0; }
 .playground-filename { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; max-width: 100%; }
 
@@ -296,15 +347,29 @@ function polygonPoints(coords) {
   font-size: 13.5px;
 }
 
+.playground-output { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; }
 .playground-canvas { position: relative; max-width: 100%; }
 .playground-canvas img { max-width: 100%; display: block; border-radius: var(--radius); border: 1px solid var(--line); }
 .playground-overlay { position: absolute; inset: 0; width: 100%; height: 100%; }
-.playground-line { fill: rgba(199, 90, 60, .18); stroke: var(--accent, #c75a3c); stroke-width: 3; }
 
-.playground-lines { margin-top: 20px; }
+.playground-line {
+  fill: rgba(199, 90, 60, .12); stroke: var(--accent, #c75a3c); stroke-width: 3;
+  cursor: pointer; transition: fill .1s, stroke-width .1s;
+}
+.playground-line.is-hovered { fill: rgba(199, 90, 60, .38); stroke-width: 4; }
+
+.playground-region { fill: none; stroke-width: 2.5; stroke-dasharray: 6 4; opacity: .8; }
+
+.playground-side { display: flex; flex-direction: column; gap: 16px; }
 .playground-lines ol { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; }
+.playground-lines li { border-radius: 4px; padding: 1px 4px; margin: 0 -4px; cursor: default; transition: background .1s; }
+.playground-lines li.is-hovered { background: var(--olive-tint-2); }
 
-@media (max-width: 900px) {
-  .playground-grid { grid-template-columns: 1fr; }
+.playground-region-legend ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.playground-region-legend li { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.playground-region-swatch { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+@media (max-width: 1000px) {
+  .playground-output { grid-template-columns: 1fr; }
 }
 </style>

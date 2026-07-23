@@ -1,4 +1,5 @@
 import datetime as dt
+import secrets
 
 from sqlalchemy import LargeBinary, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -12,6 +13,10 @@ def _now() -> dt.datetime:
     return dt.datetime.now(dt.timezone.utc)
 
 
+def _new_public_id() -> str:
+    return secrets.token_urlsafe(24)
+
+
 class PlaygroundJob(Base):
     """One "try it in the browser" request. Lives in its own SQLite file
     (see app.playground.db) -- separate from the catalog DB since this is
@@ -21,6 +26,11 @@ class PlaygroundJob(Base):
     __tablename__ = "playground_jobs"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    # Unguessable public identifier used in the API/URL instead of the
+    # sequential integer `id` -- an autoincrement PK would let anyone poll
+    # `/api/playground/jobs/{n}` for neighboring ids and read other
+    # visitors' uploaded images and results.
+    public_id: Mapped[str] = mapped_column(String, unique=True, index=True, default=_new_public_id)
     created_at: Mapped[dt.datetime] = mapped_column(default=_now, index=True)
     started_at: Mapped[dt.datetime | None] = mapped_column(nullable=True)
     finished_at: Mapped[dt.datetime | None] = mapped_column(nullable=True)

@@ -142,16 +142,16 @@ async def submit_job(
     await db.commit()
     await db.refresh(job)
 
-    return {"id": job.id, "status": job.status, "queue_position": await _queue_position(job, db)}
+    return {"id": job.public_id, "status": job.status, "queue_position": await _queue_position(job, db)}
 
 
 @router.get("/jobs/{job_id}")
-async def get_job(job_id: int, db: AsyncSession = Depends(get_db)):
-    job = await db.get(PlaygroundJob, job_id)
+async def get_job(job_id: str, db: AsyncSession = Depends(get_db)):
+    job = (await db.execute(select(PlaygroundJob).where(PlaygroundJob.public_id == job_id))).scalar_one_or_none()
     if not job:
         raise HTTPException(status_code=404, detail="not_found")
 
-    out = {"id": job.id, "status": job.status}
+    out = {"id": job.public_id, "status": job.status}
     if job.status == "queued":
         out["queue_position"] = await _queue_position(job, db)
     elif job.status == "done":

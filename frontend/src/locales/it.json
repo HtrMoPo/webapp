@@ -195,6 +195,7 @@
     "queued": "In coda — posizione {position}",
     "running": "Elaborazione dell'immagine…",
     "recognizedText": "Testo riconosciuto",
+    "regions": "Regioni rilevate",
     "needImage": "Seleziona prima un'immagine.",
     "needModels": "Seleziona un modello di segmentazione e uno di riconoscimento.",
     "submitFailed": "Impossibile inviare l'operazione.",
