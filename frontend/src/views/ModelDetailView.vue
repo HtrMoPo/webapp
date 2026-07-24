@@ -87,7 +87,7 @@ const metadata = computed(() => {
 const authors = computed(() => metadata.value.authors || [])
 const metrics = computed(() => Object.entries(metadata.value.metrics || {}))
 const krakenCommand = computed(() =>
-  metadata.value.software_name === 'kraken' && latest.value?.doi ? `kraken get ${latest.value.doi}` : null
+  latest.value?.doi ? `kraken get ${latest.value.doi}` : null
 )
 const copied = ref(false)
 async function copyKrakenCommand() {
