@@ -43,6 +43,55 @@
   --maxw: 1380px;
 }
 
+/* Junicode and Scheherazade New -- specialist fonts for the playground's
+   recognized-text rendering, for Latin/medieval and Arabic scripts
+   respectively. Both are OFL-licensed; see the OFL.txt file alongside
+   each family under src/assets/fonts.
+   Self-hosted here so they render for every reader, not just those who
+   have them installed system-wide. */
+@font-face {
+  font-family: "Junicode";
+  src: url("../assets/fonts/junicode/Junicode-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Junicode";
+  src: url("../assets/fonts/junicode/Junicode-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Junicode";
+  src: url("../assets/fonts/junicode/Junicode-Italic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Junicode";
+  src: url("../assets/fonts/junicode/Junicode-BoldItalic.woff2") format("woff2");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Scheherazade New";
+  src: url("../assets/fonts/scheherazade/ScheherazadeNew-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Scheherazade New";
+  src: url("../assets/fonts/scheherazade/ScheherazadeNew-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 

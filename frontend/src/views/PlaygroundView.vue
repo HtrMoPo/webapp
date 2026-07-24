@@ -37,14 +37,13 @@ function zoomIn() { zoom.value = Math.min(ZOOM_MAX, +(zoom.value + 0.25).toFixed
 function zoomOut() { zoom.value = Math.max(ZOOM_MIN, +(zoom.value - 0.25).toFixed(2)) }
 function zoomReset() { zoom.value = 1 }
 
-// Rendering fonts for the recognized-text list -- Junicode and Scheherazade
-// (for Arabic) are specialist fonts common in this field but not bundled
-// here; if the reader has them installed system-wide the browser will
-// simply pick them up, otherwise this falls back to a generic serif.
+// Rendering fonts for the recognized-text list -- Junicode (Latin/medieval)
+// and Scheherazade New (Arabic) are specialist fonts common in this field,
+// self-hosted via @font-face in src/styles/main.css.
 const fontChoice = ref('default')
 const FONT_FAMILIES = {
   junicode: "'Junicode', serif",
-  scheherazade: "'Scheherazade New', 'Scheherazade', serif",
+  scheherazade: "'Scheherazade New', serif",
 }
 const fontFamilyValue = computed(() => FONT_FAMILIES[fontChoice.value] || undefined)
 function onCanvasWheel(e) {
